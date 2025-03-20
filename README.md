@@ -1,41 +1,86 @@
-# Etkinlik Yönetim Sistemi
+# Multi-Tenant Etkinlik Yönetim Sistemi
 
-Etkinlik Yönetim Sistemi, organizasyonların ve şirketlerin etkinliklerini yönetmelerine olanak sağlayan çok kiracılı (multi-tenant) bir web uygulamasıdır.
+Multi-Tenant Etkinlik Yönetim Sistemi, farklı organizasyonların (tenant) verilerini tamamen izole bir şekilde tutarak ortak bir sistem üzerinden etkinliklerini yönetmelerine olanak tanıyan bir API ve web uygulamasıdır.
 
-## Özellikler
+## 📋 Proje Gereksinimleri Checklist
 
-- **Çok Kiracılı Mimari**: Her müşteri için ayrı alt alan adları (subdomain) ve izole veri
-- **Etkinlik Yönetimi**: Etkinlik oluşturma, düzenleme, listeleme ve silme
-- **Katılımcı Kaydı**: Etkinliklere katılımcı kayıt yönetimi
-- **Kullanıcı Yönetimi**: Rol tabanlı kimlik doğrulama ve yetkilendirme
-- **Raporlama**: Etkinlik katılımı, doluluk oranı ve daha fazlası için raporlar
+### ✅ Temel Teknolojiler
+- [x] ASP.NET Core Web API (.NET 8)
+- [x] Entity Framework Core
+- [x] SQL Server veritabanı
+- [x] Redis ile önbellekleme
+- [x] JWT tabanlı kimlik doğrulama
+- [x] Swagger/OpenAPI dokümantasyonu
 
-## Teknoloji Yığını
+### ✅ Mimari Gereksinimler
+- [x] Temiz ve katmanlı mimari (Domain, Application, Infrastructure, API)
+- [x] RESTful API en iyi uygulamaları
+- [x] Bağımlılık enjeksiyonu (dependency injection)
+- [x] Hata yönetimi ve doğrulama mekanizmaları
+- [x] Verilere erişim için önbellekleme stratejileri
 
-- **.NET 8**: Backend API ve uygulama mantığı için
-- **Entity Framework Core**: Veritabanı işlemleri için ORM
-- **SQL Server**: Veritabanı
-- **JWT Kimlik Doğrulama**: Güvenli API erişimi için
+### ✅ Multi-Tenant Gereksinimler
+- [x] Paylaşımlı veritabanı ve paylaşımlı şema yaklaşımı
+- [x] Global sorgu filtreleri ile tenant izolasyonu
+- [x] JWT token üzerinden tenant kimliği belirleme
+- [x] Tenant ayrıştırması için middleware
+- [x] Tenant veri sızıntısını önleme güvenlik önlemleri
 
-## Kurulum ve Çalıştırma
+### ✅ Uygulanan Özellikler
+- [x] Kullanıcı yönetimi (kayıt, kimlik doğrulama, roller)
+- [x] Tenant yönetimi (oluşturma ve yapılandırma)
+- [x] Etkinlik yönetimi (CRUD işlemleri, arama, filtreleme)
+- [x] Kayıt yönetimi (katılımcı kaydı, kapasite kontrolü, bekleme listesi)
+- [x] Katılımcı yönetimi (bilgi saklama, kayıtlarla ilişkilendirme)
+- [x] Temel raporlama (katılım istatistikleri, katılımcı listeleri)
+
+## 🏗️ Mimari Yapı
+
+Proje, aşağıdaki katmanlardan oluşmaktadır:
+
+- **EventManagement.Domain**: Entity sınıfları, domain servisleri ve arayüzler
+- **EventManagement.Application**: İş mantığı, DTO'lar ve servis arayüzleri
+- **EventManagement.Infrastructure**: Veritabanı işlemleri, repository'ler, kimlik doğrulama ve harici servisler
+- **EventManagement.API**: API endpoint'leri, controller'lar ve middleware'ler
+- **EventManagement.UI**: (İsteğe bağlı) Web arayüzü
+
+## 🔍 Multi-Tenant Mimari
+
+Sistem, farklı müşterilerin (tenant) verilerini aynı uygulama altyapısı üzerinden yönetebilmelerine olanak tanıyan bir çok kiracılı (multi-tenant) mimari kullanmaktadır.
+
+### Kiracı Tanımlama Stratejileri
+
+1. **Alt Alan Adı (Subdomain)**: Her kiracıya benzersiz bir alt alan adı atanır. (örn. `tenant1.eventmanagement.com`)
+2. **HTTP Başlıkları (Headers)**:
+   - `X-Tenant`: Subdomain değeri (örn. "tenant1")
+   - `X-Tenant-ID`: Kiracı GUID değeri
+3. **JWT Token**: Kullanıcı kimlik doğrulaması yapıldığında, token içinde kiracı bilgisi saklanır
+
+### Veritabanı Stratejisi
+
+"Ortak veritabanı, ortak şema" yaklaşımı kullanılmıştır. Tüm kiracılar aynı veritabanını paylaşır, ancak her tabloda kiracı kimliği (TenantId) sütunu bulunur ve tüm veritabanı sorguları otomatik olarak geçerli kiracının kimliğine göre filtrelenir.
+
+## 🚀 Kurulum ve Çalıştırma
 
 ### Ön Koşullar
 
 - .NET 8 SDK
-- SQL Server (Yerel veya Docker)
+- SQL Server (Yerel, LocalDB veya Docker)
+- Redis (İsteğe bağlı, önbellekleme için)
 - Bir IDE (Visual Studio, VS Code vb.)
 
 ### Veritabanını Yapılandırma
 
-1. `EventManagement.API/appsettings.json` dosyasını açın ve veritabanı bağlantı dizesini ayarlayın:
+1. `EventManagement.API/appsettings.json` dosyasındaki veritabanı bağlantı dizesini ayarlayın:
 
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=EventManagementDb;Trusted_Connection=True;MultipleActiveResultSets=true"
+  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=EventManagementDb;Trusted_Connection=True;MultipleActiveResultSets=true",
+  "Redis": "localhost:6379"
 }
 ```
 
-2. Package Manager Console'da Entity Framework migrations'ı uygulayın:
+2. Package Manager Console'da migration'ı uygulayın:
 
 ```powershell
 cd EventManagement.API
@@ -47,8 +92,8 @@ dotnet ef database update
 1. Projeyi klonlayın:
 
 ```powershell
-git clone https://github.com/your-username/event-management.git
-cd event-management
+git clone https://github.com/yourusername/EventManagement.git
+cd EventManagement
 ```
 
 2. API'yi başlatın:
@@ -58,99 +103,124 @@ cd EventManagement.API
 dotnet run
 ```
 
-3. Tarayıcınızda Swagger arayüzüne erişin:
+3. Swagger arayüzüne tarayıcınızdan erişin:
 
 ```
-https://localhost:5001/swagger
+https://localhost:5001/api-docs
 ```
 
-## API Kullanımı
+## 🔑 Kimlik Doğrulama ve API Kullanımı
 
-API'yi kullanabilmek için önce bir token almanız gerekir:
+### Kullanıcı Oluşturma ve Giriş
+
+```http
+POST /api/auth/register
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!",
+  "firstName": "Test",
+  "lastName": "User",
+  "phoneNumber": "5551234567"
+}
+```
 
 ```http
 POST /api/auth/login
 {
-  "email": "admin@example.com",
-  "password": "YourPassword123!"
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
 }
 ```
 
-Başarılı giriş yanıtı JWT token içerecektir. Bu token'ı diğer API çağrılarında Authorization header'ında kullanın:
+Başarılı giriş yanıtı JWT token içerecektir. Bu token'ı diğer API çağrılarında Authorization header olarak kullanın:
 
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-## Çoklu Kiracı Kullanımı
+### Tenant Belirleme
 
-Her kiracı kendi alt alan adına sahiptir. API isteklerinde kiracı kimliğini belirtmek için aşağıdaki yöntemlerden birini kullanabilirsiniz:
+API isteklerinde tenant'ı belirtmek için şu yöntemlerden birini kullanabilirsiniz:
 
 1. Alt alan adı: `https://tenant1.eventmanagement.com/api/events`
 2. HTTP header: `X-Tenant: tenant1` veya `X-Tenant-ID: 00000000-0000-0000-0000-000000000000`
 
-## Lisans
+### Örnek API Çağrıları
 
-Bu proje MIT lisansı altında lisanslanmıştır. Daha fazla bilgi için `LICENSE` dosyasına bakın. 
+#### Etkinlik Listeleme
+```http
+GET /api/events
+```
 
-## Mimari Açıklaması
+#### Yeni Etkinlik Oluşturma
+```http
+POST /api/events
+{
+  "title": "Geliştirici Konferansı",
+  "description": "Yıllık geliştirici buluşması",
+  "startDate": "2023-12-01T09:00:00",
+  "endDate": "2023-12-01T17:00:00",
+  "location": "İstanbul Kongre Merkezi",
+  "capacity": 250,
+  "isPublic": true
+}
+```
 
-# Çok Kiracılı (Multi-Tenant) Mimari Açıklaması
+#### Etkinliğe Katılımcı Kaydetme
+```http
+POST /api/events/{eventId}/registrations
+{
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+```
 
-Bu belge, Etkinlik Yönetim Sistemi'nin çok kiracılı mimarisini açıklamaktadır.
+## 📚 API Endpoint'leri
 
-## Genel Bakış
+### Kimlik Doğrulama ve Kullanıcı Yönetimi
+- `POST /api/auth/register`: Yeni kullanıcı kaydı
+- `POST /api/auth/login`: Kullanıcı girişi ve JWT token alımı
+- `GET /api/users/me`: Mevcut kullanıcı profilini alma
+- `PUT /api/users/me`: Kullanıcı profilini güncelleme
+- `GET /api/users`: Kullanıcıları listeleme (admin yetkisi gerektirir)
 
-Etkinlik Yönetim Sistemi, farklı organizasyonların (kiracıların) aynı uygulama altyapısı üzerinden kendi etkinliklerini bağımsız olarak yönetebilmelerine olanak tanıyan bir çok kiracılı (multi-tenant) mimari kullanmaktadır. Her kiracı, kendi izole verisine sahiptir ve diğer kiracıların verilerine erişemez.
+### Tenant Yönetimi
+- `POST /api/tenants`: Yeni tenant oluşturma
+- `GET /api/tenants/current`: Mevcut tenant bilgilerini alma
 
-## Kiracı Tanımlama Stratejisi
+### Etkinlik Yönetimi
+- `GET /api/events`: Tüm etkinlikleri listeleme (filtreleme desteklenir)
+- `GET /api/events/{id}`: Etkinlik detaylarını alma
+- `POST /api/events`: Yeni etkinlik oluşturma
+- `PUT /api/events/{id}`: Etkinlik güncelleme
+- `DELETE /api/events/{id}`: Etkinlik silme
 
-Sistemimiz kiracıları aşağıdaki yöntemlerle tanımlar:
+### Kayıt Yönetimi
+- `GET /api/events/{eventId}/registrations`: Etkinlik kayıtlarını listeleme
+- `POST /api/events/{eventId}/registrations`: Etkinliğe katılımcı kaydetme
+- `PUT /api/events/{eventId}/registrations/{id}`: Kayıt durumunu güncelleme
+- `DELETE /api/events/{eventId}/registrations/{id}`: Kaydı iptal etme
 
-1. **Alt Alan Adı (Subdomain) Tanıma**: Her kiracıya benzersiz bir alt alan adı atanır. Örneğin, tenant1.eventmanagement.com
+### Raporlama
+- `GET /api/events/{eventId}/statistics`: Etkinlik katılım istatistiklerini alma
+- `GET /api/reports/upcoming-events`: Yaklaşan etkinlikler raporunu alma
 
-2. **HTTP Başlıkları (Headers)**: İstemciler, API isteklerinde kiracı kimliğini belirtmek için HTTP başlıklarını kullanabilir:
-   - `X-Tenant`: Alt alan adı değerini içerir (örn. "tenant1")
-   - `X-Tenant-ID`: Kiracı GUID değerini içerir
+## 🛠️ Teknik Detaylar
 
-3. **JWT Token İçinde Kiracı Bilgisi**: Kullanıcı kimlik doğrulaması yapıldığında, JWT token içinde kullanıcının hangi kiracıya ait olduğu da saklanır. Böylece, API isteklerinde kullanıcının sadece kendi kiracısının verilerine erişebilmesi sağlanır.
+### Kullanılan Teknolojiler
+- **.NET 8**: Backend API ve uygulama mantığı
+- **Entity Framework Core 8.0**: ORM ve veritabanı işlemleri
+- **SQL Server**: Ana veritabanı
+- **Redis**: Önbellekleme ve performans optimizasyonu
+- **JWT Authentication**: Güvenli API erişimi
+- **Swagger/OpenAPI**: API dokümantasyonu
 
-## Mimari Bileşenler
+### Güvenlik Özellikleri
+- Tenant izolasyonu ile veri güvenliği
+- Rol tabanlı yetkilendirme
+- JWT token ile güvenli kimlik doğrulama
+- SQL enjeksiyon koruması (Entity Framework parametre temizleme)
+- Cross-Origin Resource Sharing (CORS) koruması
 
-### TenantMiddleware
+## 📄 Lisans
 
-Sistemin merkezinde `TenantMiddleware` yer alır. Bu middleware, her API isteğini yakalayarak:
-
-1. İstek URL'sindeki alt alan adını kontrol eder
-2. HTTP başlıklarını kontrol eder
-3. JWT token'daki kiracı bilgisini doğrular
-4. İlgili kiracıyı veritabanından bulur ve HttpContext.Items'a ekler
-
-Böylece, uygulamanın diğer bileşenleri HttpContext aracılığıyla geçerli kiracıya kolayca erişebilir.
-
-### Veritabanı Stratejisi
-
-Uygulama, "ortak veritabanı, ayrı şema" yaklaşımını kullanır. Tüm kiracılar aynı veritabanını paylaşır, ancak her tabloda kiracı kimliği (TenantId) sütunu bulunur. Tüm veritabanı sorguları, otomatik olarak geçerli kiracının kimliğine göre filtrelenir.
-
-### Repository Katmanı
-
-Repository sınıfları, veritabanı sorgularını gerçekleştirirken TenantId filtresini otomatik olarak ekler. Bu sayede, tüm veriler kiracı düzeyinde izole edilir ve bir kiracı diğer kiracının verilerine erişemez.
-
-### Servis Katmanı
-
-Servis katmanı, business logic'i uygularken her zaman kiracı kontekstini göz önünde bulundurur. Tüm servis metodları, TenantId parametresini alır ve bu parametre ile repository katmanına istek yapar.
-
-## Güvenlik Önlemleri
-
-- Bir kullanıcı, JWT token'ında belirtilen kiracıdan farklı bir kiracıya ait verilere erişmeye çalıştığında hata alır
-- Kiracı bulunamazsa 404 hatası döndürülür
-- Kiracı uyuşmazlığı durumunda 403 (Forbidden) hatası döndürülür
-
-## Örnek Akış
-
-1. Kullanıcı tenant1.eventmanagement.com üzerinden giriş yapar
-2. Sistem, alt alan adından kiracıyı tanımlar
-3. Kullanıcı kimlik doğrulaması başarılı olursa, JWT token içinde 'tenant_id' talebi (claim) yer alır
-4. Kullanıcı etkinlikleri listelemek istediğinde, API otomatik olarak sadece 'tenant1' kiracısına ait etkinlikleri getirir
-
-Bu mimari, farklı organizasyonların aynı uygulama altyapısını kullanarak kendi izole ortamlarına sahip olmalarını sağlar. 
+Bu proje MIT lisansı altında lisanslanmıştır. 
