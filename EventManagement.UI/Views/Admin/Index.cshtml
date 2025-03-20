@@ -1,4 +1,5 @@
 @model List<EventManagement.UI.Models.DTOs.EventDto>
+@using EventManagement.UI.Models.DTOs
 @{
     ViewData["Title"] = "Admin Dashboard";
     Layout = "_AdminLayout";
@@ -53,7 +54,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="card-title mb-0">Onay Bekleyenler</h5>
-                            <h2 class="mb-0 mt-2">@(Model?.Count(e => e.Status == "Pending") ?? 0)</h2>
+                            <h2 class="mb-0 mt-2">@(Model?.Count(e => e.Status == EventStatus.Pending) ?? 0)</h2>
                         </div>
                         <div class="rounded-circle bg-warning-light p-3">
                             <i class="bi bi-hourglass-split fs-1"></i>
@@ -148,7 +149,7 @@
             </button>
         </div>
         <div class="card-body collapse show" id="pendingEventsContent">
-            @if (Model.Any(e => e.Status == "Pending"))
+            @if (Model.Any(e => e.Status == EventStatus.Pending))
             {
                 <div class="table-responsive">
                     <table class="table table-hover" id="pendingEventsTable" width="100%" cellspacing="0">
@@ -163,7 +164,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var eventItem in Model.Where(e => e.Status == "Pending"))
+                            @foreach (var eventItem in Model.Where(e => e.Status == EventStatus.Pending))
                             {
                                 <tr>
                                     <td>
