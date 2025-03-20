@@ -1,0 +1,126 @@
+/* Swagger UI özel stilleri */
+
+/* Header ve marka stilini güncelle */
+.swagger-ui .topbar {
+    background-color: #3f51b5;
+    padding: 10px 0;
+}
+
+.swagger-ui .topbar .download-url-wrapper .select-label {
+    color: #fff;
+}
+
+/* Ana başlık stilini güncelle */
+.swagger-ui .info .title {
+    font-size: 2.2em;
+    color: #3f51b5;
+    font-weight: 600;
+}
+
+/* Endpoint başlıkları */
+.swagger-ui .opblock .opblock-summary-method {
+    font-weight: bold;
+}
+
+/* Operasyon kartlarını güzelleştir */
+.swagger-ui .opblock {
+    margin: 0 0 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: none;
+    overflow: hidden;
+}
+
+/* GET isteği rengi */
+.swagger-ui .opblock-get {
+    border-color: #61affe;
+    background: rgba(97, 175, 254, 0.1);
+}
+
+/* POST isteği rengi */
+.swagger-ui .opblock-post {
+    border-color: #49cc90;
+    background: rgba(73, 204, 144, 0.1);
+}
+
+/* PUT isteği rengi */
+.swagger-ui .opblock-put {
+    border-color: #fca130;
+    background: rgba(252, 161, 48, 0.1);
+}
+
+/* DELETE isteği rengi */
+.swagger-ui .opblock-delete {
+    border-color: #f93e3e;
+    background: rgba(249, 62, 62, 0.1);
+}
+
+/* Butonları daha belirgin yap */
+.swagger-ui .btn {
+    border-radius: 4px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+}
+
+.swagger-ui .btn.execute {
+    background-color: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.swagger-ui .btn.execute:hover {
+    background-color: #388e3c;
+    border-color: #388e3c;
+}
+
+/* Execute bölümünü daha belirgin yap */
+.swagger-ui .try-out {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.swagger-ui .try-out__btn {
+    background-color: #3f51b5;
+    color: white;
+    border-color: #3f51b5;
+}
+
+.swagger-ui .try-out__btn:hover {
+    background-color: #303f9f;
+    border-color: #303f9f;
+}
+
+/* Response bölümünü geliştir */
+.swagger-ui .responses-table {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* İstek ve yanıt örneklerini daha iyi göster */
+.swagger-ui .highlight-code {
+    max-height: 400px;
+    border-radius: 4px;
+}
+
+/* Form elemanlarını iyileştir */
+.swagger-ui input[type=text], 
+.swagger-ui input[type=password], 
+.swagger-ui input[type=search], 
+.swagger-ui input[type=email], 
+.swagger-ui select, 
+.swagger-ui textarea {
+    border-radius: 4px;
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.swagger-ui input[type=text]:focus, 
+.swagger-ui input[type=password]:focus, 
+.swagger-ui input[type=search]:focus, 
+.swagger-ui input[type=email]:focus, 
+.swagger-ui select:focus, 
+.swagger-ui textarea:focus {
+    border-color: #3f51b5;
+    box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+} 

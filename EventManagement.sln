@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Domain", "EventManagement.Domain\EventManagement.Domain.csproj", "{7E1FF21A-0E6D-40BD-95D4-417A0DD20689}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Application", "EventManagement.Application\EventManagement.Application.csproj", "{3729932E-4CDA-48BA-A5FD-9C569CC53B39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Infrastructure", "EventManagement.Infrastructure\EventManagement.Infrastructure.csproj", "{E9B1E21B-26B9-4D2A-9999-E963DC44D5F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.API", "EventManagement.API\EventManagement.API.csproj", "{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{15AB29EF-6B8D-4595-A866-7273C5739DB1}"
+	ProjectSection(SolutionItems) = preProject
+		docs\multi-tenant-architecture.md = docs\multi-tenant-architecture.md
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.UI", "EventManagement.UI\EventManagement.UI.csproj", "{C633CD23-F901-45B4-8FD3-1EE2358996DC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E1FF21A-0E6D-40BD-95D4-417A0DD20689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E1FF21A-0E6D-40BD-95D4-417A0DD20689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E1FF21A-0E6D-40BD-95D4-417A0DD20689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E1FF21A-0E6D-40BD-95D4-417A0DD20689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3729932E-4CDA-48BA-A5FD-9C569CC53B39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3729932E-4CDA-48BA-A5FD-9C569CC53B39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3729932E-4CDA-48BA-A5FD-9C569CC53B39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3729932E-4CDA-48BA-A5FD-9C569CC53B39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9B1E21B-26B9-4D2A-9999-E963DC44D5F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9B1E21B-26B9-4D2A-9999-E963DC44D5F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9B1E21B-26B9-4D2A-9999-E963DC44D5F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9B1E21B-26B9-4D2A-9999-E963DC44D5F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

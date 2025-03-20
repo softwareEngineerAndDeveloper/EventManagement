@@ -1,0 +1,196 @@
+@model List<EventManagement.UI.Models.DTOs.EventDto>
+@using EventManagement.UI.Models.DTOs
+@{
+    ViewData["Title"] = "Etkinlik Yönetimi";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">Etkinlik Yönetimi</h1>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Tüm Etkinlikler</h6>
+            <a asp-controller="Event" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Yeni Etkinlik Ekle
+            </a>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="eventsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Başlık</th>
+                                <th>Açıklama</th>
+                                <th>Başlangıç Tarihi</th>
+                                <th>Bitiş Tarihi</th>
+                                <th>Konum</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var eventItem in Model)
+                            {
+                                <tr>
+                                    <td>@eventItem.Title</td>
+                                    <td>@eventItem.Description</td>
+                                    <td>@eventItem.StartDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>@eventItem.EndDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>@eventItem.Location</td>
+                                    <td>
+                                        @switch (eventItem.Status)
+                                        {
+                                            case EventStatus.Pending:
+                                                <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                                break;
+                                            case EventStatus.Approved:
+                                                <span class="badge bg-success">Onaylandı</span>
+                                                break;
+                                            case EventStatus.Rejected:
+                                                <span class="badge bg-danger">Reddedildi</span>
+                                                break;
+                                            case EventStatus.Cancelled:
+                                                <span class="badge bg-secondary">İptal Edildi</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-info">Belirsiz</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a asp-controller="Event" asp-action="Edit" asp-route-id="@eventItem.Id" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </a>
+                                            <button type="button" class="btn btn-info btn-sm mx-1" data-bs-toggle="modal" data-bs-target="#participantsModal" data-event-id="@eventItem.Id" data-event-title="@eventItem.Title">
+                                                <i class="bi bi-people"></i> Katılımcılar
+                                            </button>
+                                            @if (!eventItem.IsCancelled)
+                                            {
+                                                <form asp-action="CancelEvent" method="post">
+                                                    <input type="hidden" name="id" value="@eventItem.Id" />
+                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu etkinliği iptal etmek istediğinizden emin misiniz?')">
+                                                        <i class="bi bi-x-circle"></i> İptal Et
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    Henüz eklenmiş etkinlik bulunmamaktadır.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Katılımcılar Modal -->
+<div class="modal fade" id="participantsModal" tabindex="-1" aria-labelledby="participantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participantsModalLabel">Etkinlik Katılımcıları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center" id="participantsLoading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+                <div id="participantsList" class="d-none">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Katılım Durumu</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noParticipants" class="alert alert-info d-none">
+                    Bu etkinliğe henüz katılımcı eklenmemiştir.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="addParticipantBtn">Katılımcı Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable
+            $('#eventsTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+                }
+            });
+            
+            // Katılımcılar modalı açılınca
+            $('#participantsModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var eventId = button.data('event-id');
+                var eventTitle = button.data('event-title');
+                var modal = $(this);
+                
+                modal.find('.modal-title').text(eventTitle + ' - Katılımcılar');
+                
+                // Burada API çağrısı yapılarak katılımcılar getirilecek
+                $('#participantsLoading').removeClass('d-none');
+                $('#participantsList').addClass('d-none');
+                $('#noParticipants').addClass('d-none');
+                
+                // API çağrısı simülasyonu
+                setTimeout(function() {
+                    $('#participantsLoading').addClass('d-none');
+                    
+                    // Örnek veri
+                    var participants = [
+                        { id: 1, name: 'Ahmet Yılmaz', email: 'ahmet@example.com', status: 'Onaylandı' },
+                        { id: 2, name: 'Mehmet Kaya', email: 'mehmet@example.com', status: 'Bekleniyor' }
+                    ];
+                    
+                    if (participants.length > 0) {
+                        var tableBody = $('#participantsTableBody');
+                        tableBody.empty();
+                        
+                        participants.forEach(function(participant) {
+                            var row = '<tr>' +
+                                '<td>' + participant.name + '</td>' +
+                                '<td>' + participant.email + '</td>' +
+                                '<td>' + participant.status + '</td>' +
+                                '<td>' +
+                                '<button class="btn btn-sm btn-danger removeParticipant" data-id="' + participant.id + '">Kaldır</button>' +
+                                '</td>' +
+                                '</tr>';
+                            tableBody.append(row);
+                        });
+                        
+                        $('#participantsList').removeClass('d-none');
+                    } else {
+                        $('#noParticipants').removeClass('d-none');
+                    }
+                }, 1000);
+            });
+        });
+    </script>
+} 
