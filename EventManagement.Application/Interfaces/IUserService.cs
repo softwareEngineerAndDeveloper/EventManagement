@@ -14,5 +14,6 @@ namespace EventManagement.Application.Interfaces
         Task<ResponseDto<bool>> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto, Guid tenantId);
         Task<ResponseDto<bool>> AssignRoleToUserAsync(AssignRoleDto assignRoleDto, Guid tenantId);
         Task<ResponseDto<List<RoleDto>>> GetRolesAsync(Guid tenantId);
+        Task<ResponseDto<List<Guid>>> GetUserRolesAsync(Guid userId, Guid tenantId);
     }
 } 

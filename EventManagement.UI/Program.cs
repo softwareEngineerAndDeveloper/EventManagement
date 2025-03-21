@@ -1,133 +1,138 @@
 using EventManagement.UI.Services;
-using EventManagement.UI.Interfaces;
+using EventManagement.UI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using EventManagement.UI.Models;
-using EventManagement.UI.Middleware;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// API yapılandırması
-builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
-builder.Services.Configure<TenantSettings>(builder.Configuration.GetSection("Tenant"));
+// Add services to the container.
+builder.Services.AddControllersWithViews();
 
-// HttpClient yapılandırması
-builder.Services.AddHttpClient<IApiServiceUI, ApiServiceUI>();
-builder.Services.AddHttpContextAccessor();
+// HttpClient için servis
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-// Caching
-builder.Services.AddMemoryCache();
+// ApiClient yapılandırması
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:2025/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Accept.Clear();
+    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    
+    // X-Tenant header'ı ekle
+    var defaultTenant = builder.Configuration["ApiSettings:DefaultTenant"];
+    if (!string.IsNullOrEmpty(defaultTenant))
+    {
+        client.DefaultRequestHeaders.Add("X-Tenant", defaultTenant);
+    }
+});
 
-// Session yapılandırması
-builder.Services.AddDistributedMemoryCache();
+// Servisler
+builder.Services.AddScoped<IApiService, ApiService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Cookie tabanlı kimlik doğrulama ekle
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        
+        // Cookie'nin silinmesini kolaylaştırır
+        options.Cookie.Name = "EventManagement.Auth";
+        
+        // Çıkış yaparken cookie'yi otomatik sil
+        options.SlidingExpiration = true;
+        
+        // Yetkilendirme başarısız olduğunda yeniden girişe yönlendir
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (!context.Response.Headers.ContainsKey("Cache-Control"))
+                context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            
+            if (!context.Response.Headers.ContainsKey("Pragma"))
+                context.Response.Headers.Append("Pragma", "no-cache");
+            
+            if (!context.Response.Headers.ContainsKey("Expires"))
+                context.Response.Headers.Append("Expires", "0");
+                
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        
+        // Cookie geçersiz olduğunda her zaman giriş sayfasına yönlendir
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (!context.Response.Headers.ContainsKey("Cache-Control"))
+                context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            
+            if (!context.Response.Headers.ContainsKey("Pragma"))
+                context.Response.Headers.Append("Pragma", "no-cache");
+            
+            if (!context.Response.Headers.ContainsKey("Expires"))
+                context.Response.Headers.Append("Expires", "0");
+                
+            // Giriş sayfasına yönlendir
+            context.Response.Redirect("/Account/Login");
+            return Task.CompletedTask;
+        };
+    });
+
+// Oturum yapılandırması
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.Name = "EventManagement.Session";
 });
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// Kimlik doğrulama
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "EventManagement.Auth";
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(1);
-    });
-
-// Otorizasyon politikaları
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("RequireEventManager", policy => policy.RequireRole("Admin", "EventManager"));
-});
-
-// API servisini DI container'a ekle
-builder.Services.AddScoped<IApiServiceUI, ApiServiceUI>();
-builder.Services.AddScoped<ITenantResolverService, TenantResolverService>();
-
-// Admin Controller için gerekli servisleri ekle
-builder.Services.AddScoped<IEventServiceUI, EventServiceUI>();
-builder.Services.AddScoped<IUserServiceUI, UserServiceUI>();
-builder.Services.AddScoped<IRoleServiceUI, RoleServiceUI>();
-builder.Services.AddScoped<IAttendeeServiceUI, AttendeeServiceUI>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
+    // Üretim ortamında genel hata sayfasına yönlendir
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+else
+{
+    // Geliştirme ortamında bile kullanıcı dostu hata sayfası göster
+    app.UseExceptionHandler("/Home/Error");
+}
+
+app.UseStatusCodePagesWithReExecute("/Home/Error/{0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// Session middleware'ini ekle
-app.UseSession();
-
-// Tenant middleware'ini ekle
-app.UseTenantMiddleware();
-
+// Kimlik doğrulama ve yetkilendirme middleware'leri
 app.UseAuthentication();
 app.UseAuthorization();
 
-// AuthenticationMiddleware'den sonra HomeController için default route ekleyelim
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.Value == "/" || context.Request.Path.Value == "/Home/Index")
-    {
-        // Kullanıcı giriş yapmışsa ve Admin veya EventManager ise Admin dashboard'a yönlendir
-        if (context.User.Identity?.IsAuthenticated == true && 
-            (context.User.IsInRole("Admin") || context.User.IsInRole("EventManager")))
-        {
-            context.Response.Redirect("/Admin/Index");
-            return;
-        }
-    }
-    
-    await next();
-});
+// Oturum middleware'i
+app.UseSession();
 
-// Hata middleware'i
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next();
-    }
-    catch (Exception ex)
-    {
-        // Hata oluştuğunda kullanıcıya daha iyi bir mesaj göster
-        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "İstek işlenirken bir hata oluştu: {Path}", context.Request.Path);
-        
-        context.Response.Redirect("/Home/Error");
-    }
-});
-
-// URL path tabanlı tenant route yapılandırması
+// Yerel alan (Area) yönlendirmeleri
 app.MapControllerRoute(
-    name: "tenant",
-    pattern: "{tenant}/{controller=Home}/{action=Index}/{id?}");
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
-// Default route
+// Varsayılan Yönlendirme
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();
-
-// Tenant ayarları için yardımcı sınıf
-public class TenantSettings
-{
-    public string DefaultSubdomain { get; set; } = string.Empty;
-}

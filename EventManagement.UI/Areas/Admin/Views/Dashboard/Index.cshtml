@@ -1,0 +1,242 @@
+@{
+    ViewData["Title"] = "Admin Paneli";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Gösterge Paneli</h1>
+    <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-download fa-sm text-white-50"></i> Rapor Oluştur
+    </a>
+</div>
+
+<div class="row">
+    <!-- Toplam Etkinlik Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Toplam Etkinlik</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">26</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toplam Kullanıcı Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Toplam Kullanıcı</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">215</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktif Tenant Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Aktif Tenant</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">8</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toplam Kayıt Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Toplam Kayıt</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">524</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Son Etkinlikler -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Son Etkinlikler</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">İşlemler:</div>
+                        <a class="dropdown-item" href="#">Tümünü Göster</a>
+                        <a class="dropdown-item" href="#">Yeni Etkinlik Ekle</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Rapor Oluştur</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Etkinlik Adı</th>
+                                <th>Başlangıç</th>
+                                <th>Bitiş</th>
+                                <th>Konum</th>
+                                <th>Kapasite</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Yazılım Geliştirme Konferansı</td>
+                                <td>15.05.2024</td>
+                                <td>17.05.2024</td>
+                                <td>İstanbul</td>
+                                <td>250</td>
+                                <td><span class="badge bg-success">Aktif</span></td>
+                            </tr>
+                            <tr>
+                                <td>Veri Bilimi Semineri</td>
+                                <td>21.06.2024</td>
+                                <td>21.06.2024</td>
+                                <td>Ankara</td>
+                                <td>100</td>
+                                <td><span class="badge bg-warning">Beklemede</span></td>
+                            </tr>
+                            <tr>
+                                <td>AI Workshop</td>
+                                <td>05.07.2024</td>
+                                <td>06.07.2024</td>
+                                <td>İzmir</td>
+                                <td>75</td>
+                                <td><span class="badge bg-primary">Hazırlık</span></td>
+                            </tr>
+                            <tr>
+                                <td>Bulut Teknolojileri Summit</td>
+                                <td>22.09.2024</td>
+                                <td>23.09.2024</td>
+                                <td>İstanbul</td>
+                                <td>300</td>
+                                <td><span class="badge bg-info">Planlama</span></td>
+                            </tr>
+                            <tr>
+                                <td>Siber Güvenlik Zirvesi</td>
+                                <td>10.10.2024</td>
+                                <td>12.10.2024</td>
+                                <td>Antalya</td>
+                                <td>150</td>
+                                <td><span class="badge bg-secondary">Taslak</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tenant Dağılımı Grafik -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Tenant Dağılımı</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">İşlemler:</div>
+                        <a class="dropdown-item" href="#">Detayları Göster</a>
+                        <a class="dropdown-item" href="#">İstatistikleri İndir</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="tenantDistribution"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-primary"></i> Eğitim
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-success"></i> Teknoloji
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-info"></i> Sağlık
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-warning"></i> Kültür
+                    </span>
+                    <span class="mr-2">
+                        <i class="fas fa-circle text-danger"></i> Diğer
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tenant dağılımı pasta grafiği
+            var ctx = document.getElementById('tenantDistribution');
+            var myPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ["Eğitim", "Teknoloji", "Sağlık", "Kültür", "Diğer"],
+                    datasets: [{
+                        data: [35, 25, 15, 15, 10],
+                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                        hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#dda20a', '#be2617'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    cutout: '70%',
+                }
+            });
+        });
+    </script>
+} 

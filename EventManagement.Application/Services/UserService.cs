@@ -179,6 +179,32 @@ namespace EventManagement.Application.Services
             return ResponseDto<List<RoleDto>>.Success(roleDtos);
         }
 
+        public async Task<ResponseDto<List<Guid>>> GetUserRolesAsync(Guid userId, Guid tenantId)
+        {
+            try
+            {
+                // Kullanıcının var olup olmadığını kontrol et
+                var userExists = await _unitOfWork.Users.FindAsync(u => u.Id == userId && u.TenantId == tenantId);
+                if (!userExists.Any())
+                {
+                    return ResponseDto<List<Guid>>.Fail($"Kullanıcı bulunamadı (ID: {userId})");
+                }
+
+                // Kullanıcının rollerini getir
+                var userRoles = await _unitOfWork.UserRoles.FindAsync(ur => ur.UserId == userId && ur.TenantId == tenantId);
+                
+                // Rollerin ID'lerini al
+                var roleIds = userRoles.Select(ur => ur.RoleId).ToList();
+                
+                return ResponseDto<List<Guid>>.Success(roleIds);
+            }
+            catch (Exception ex)
+            {
+                // Hata durumunda
+                return ResponseDto<List<Guid>>.Fail($"Kullanıcı rolleri getirilirken bir hata oluştu: {ex.Message}");
+            }
+        }
+
         private UserDto MapToDto(User user)
         {
             return new UserDto

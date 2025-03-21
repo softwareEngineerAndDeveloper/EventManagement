@@ -1,0 +1,265 @@
+@{
+    ViewData["Title"] = "Katılımcı Paneli";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Katılımcı Gösterge Paneli</h1>
+    <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-ticket-alt fa-sm text-white-50"></i> Biletlerim
+    </a>
+</div>
+
+<div class="row">
+    <!-- Kayıtlı Etkinlikler Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Kayıtlı Etkinlikler</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">4</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yaklaşan Etkinlikler Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Yaklaşan Etkinlikler</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">2</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Katıldığım Etkinlikler Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Katıldığım Etkinlikler</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">2</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sertifikalar Kartı -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Sertifikalarım</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">1</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-certificate fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Etkinliklerim -->
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Etkinliklerim</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                        aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">İşlemler:</div>
+                        <a class="dropdown-item" href="#">Etkinlik Ara</a>
+                        <a class="dropdown-item" href="#">Kayıtlarım</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Sertifikalarım</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Etkinlik Adı</th>
+                                <th>Tarih</th>
+                                <th>Konum</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Dijital Pazarlama Günleri</td>
+                                <td>12-13.05.2024</td>
+                                <td>İstanbul</td>
+                                <td><span class="badge bg-success">Onaylandı</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-calendar-times"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Veri Bilimi Konferansı</td>
+                                <td>20.05.2024</td>
+                                <td>Online</td>
+                                <td><span class="badge bg-success">Onaylandı</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-calendar-times"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Front-end Teknolojileri Semineri</td>
+                                <td>15.07.2024</td>
+                                <td>İzmir</td>
+                                <td><span class="badge bg-info">Beklemede</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-calendar-times"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>UX/UI Tasarım Atölyesi</td>
+                                <td>28.05.2024</td>
+                                <td>İstanbul</td>
+                                <td><span class="badge bg-warning">Ödeme Bekliyor</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-success btn-sm">
+                                        <i class="fas fa-credit-card"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popüler Etkinlikler -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Önerilen Etkinlikler</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Mobil Uygulama Geliştirme Workshop</h6>
+                            <small class="text-muted">12 gün sonra</small>
+                        </div>
+                        <p class="mb-1">25 Haziran 2024, Ankara</p>
+                        <small class="text-success">30 kişilik kontenjan</small>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Siber Güvenlik Konferansı</h6>
+                            <small class="text-muted">20 gün sonra</small>
+                        </div>
+                        <p class="mb-1">5 Haziran 2024, Online</p>
+                        <small class="text-danger">Ücretsiz katılım!</small>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">E-Ticaret Stratejileri</h6>
+                            <small class="text-muted">30 gün sonra</small>
+                        </div>
+                        <p class="mb-1">15 Haziran 2024, İstanbul</p>
+                        <small class="text-warning">Sınırlı kontenjan</small>
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-primary btn-sm btn-block">Daha Fazla Etkinlik Keşfet</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sertifikalarım -->
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sertifikalarım</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-certificate fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Front-end Geliştiriciliğe Giriş</h5>
+                                <p class="card-text">Mart 2024</p>
+                                <a href="#" class="btn btn-primary btn-sm">İndir</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> Katıldığınız ve tamamladığınız etkinliklerin ardından sertifikalarınız burada listelenecektir.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Bildirim işlemleri için örnek
+            $('.notification-bell').click(function (e) {
+                e.preventDefault();
+                // Bildirim işlemleri
+            });
+        });
+    </script>
+} 

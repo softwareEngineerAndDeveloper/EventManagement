@@ -1,57 +1,71 @@
-using EventManagement.UI.Interfaces;
-using EventManagement.UI.Models;
-using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using EventManagement.UI.DTOs; // Session için
+using Microsoft.AspNetCore.Mvc;
+using EventManagement.UI.Models;
 
-namespace EventManagement.UI.Controllers
+namespace EventManagement.UI.Controllers;
+
+public class HomeController : Controller
 {
-    public class HomeController : BaseController
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(ILogger<HomeController> logger)
     {
-        private readonly IApiServiceUI _apiService;
-
-        public HomeController(ILogger<HomeController> logger, IApiServiceUI apiService) 
-            : base(logger)
-        {
-            _apiService = apiService;
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdStr = HttpContext.Session.GetString("TenantId");
-            
-            if (!string.IsNullOrEmpty(tenantIdStr) && Guid.TryParse(tenantIdStr, out Guid tenantId))
-            {
-                return tenantId;
-            }
-            
-            // Varsayılan tenant ID
-            return new Guid("3fa85f64-5717-4562-b3fc-2c963f66afa6");
-        }
-
-        public async Task<IActionResult> Index()
-        {
-            var upcomingEvents = await _apiService.GetUpcomingEventsAsync(GetTenantId());
-            
-            if (!upcomingEvents.IsSuccess)
-            {
-                _logger.LogError("Yaklaşan etkinlikler alınamadı: {Message}", upcomingEvents.Message);
-                upcomingEvents.Data = new List<EventDto>();
-            }
-            
-            return View(upcomingEvents.Data);
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
+        _logger = logger;
     }
-} 
+
+    public IActionResult Index()
+    {
+        return View();
+    }
+
+    public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error(int? statusCode = null)
+    {
+        var errorModel = new ErrorViewModel 
+        { 
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier 
+        };
+
+        if (statusCode.HasValue)
+        {
+            errorModel.StatusCode = statusCode.Value;
+            
+            switch (statusCode.Value)
+            {
+                case 401:
+                    errorModel.Title = "Yetkisiz Erişim";
+                    errorModel.Message = "Bu sayfaya erişmek için giriş yapmanız gerekmektedir.";
+                    break;
+                case 403:
+                    errorModel.Title = "Erişim Reddedildi";
+                    errorModel.Message = "Bu sayfaya erişim izniniz bulunmamaktadır.";
+                    break;
+                case 404:
+                    errorModel.Title = "Sayfa Bulunamadı";
+                    errorModel.Message = "Aradığınız sayfa bulunamadı.";
+                    break;
+                case 500:
+                default:
+                    errorModel.Title = "Bir Hata Oluştu";
+                    errorModel.Message = "İşleminiz gerçekleştirilirken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.";
+                    break;
+            }
+        }
+        else
+        {
+            errorModel.Title = "Bir Hata Oluştu";
+            errorModel.Message = "İşleminiz gerçekleştirilirken beklenmedik bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.";
+        }
+
+        // Loglama
+        _logger.LogError("Hata: {Title} - {Message} - RequestId: {RequestId}", 
+            errorModel.Title, errorModel.Message, errorModel.RequestId);
+
+        return View(errorModel);
+    }
+}

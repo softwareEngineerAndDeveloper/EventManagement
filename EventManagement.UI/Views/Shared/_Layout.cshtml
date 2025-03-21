@@ -1,124 +1,28 @@
 ﻿<!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - EventManagement.UI</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Etkinlik Yönetim</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EventManagement.UI.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-        /* Dark mode için özel stillemeleri */
-        [data-bs-theme="dark"] {
-            --bs-body-color: #f8f9fa;
-            --bs-body-bg: #212529;
-        }
-        .navbar-light.bg-white[data-bs-theme="dark"] {
-            background-color: #212529 !important;
-        }
-        [data-bs-theme="dark"] .navbar-light .navbar-brand,
-        [data-bs-theme="dark"] .navbar-light .nav-link {
-            color: #f8f9fa !important;
-        }
-        [data-bs-theme="dark"] .border-bottom {
-            border-color: #495057 !important;
-        }
-        [data-bs-theme="dark"] .text-dark {
-            color: #f8f9fa !important;
-        }
-        [data-bs-theme="dark"] .footer {
-            background-color: #343a40;
-            color: #adb5bd !important;
-        }
-        .dark-mode-toggle {
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            margin-left: 10px;
-        }
-    </style>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">EventManagement.UI</a>
+                <a class="navbar-brand" asp-area="" asp-controller="" asp-action="">Etkinlik Yönetim</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Event" asp-action="Index">Etkinlikler</a>
-                        </li>
-                        @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("Admin") || User.IsInRole("EventManager"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Event" asp-action="Create">Yeni Etkinlik</a>
-                            </li>
-                        }
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Gizlilik</a>
-                        </li>
+                        
                     </ul>
-                    <ul class="navbar-nav d-flex align-items-center">
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item">
-                                <span class="nav-link text-dark">Merhaba, @User.Identity.Name!</span>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-user"></i>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li>
-                                        <a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile">
-                                            <i class="fas fa-user-circle me-2"></i> Hesap
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#">
-                                            <i class="fas fa-cog me-2"></i> Ayarlar
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" id="etkinlikGecmisi">
-                                            <i class="fas fa-history me-2"></i> Etkinlik Geçmişi
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post">
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="fas fa-sign-out-alt me-2"></i> Çıkış Yap
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <div class="dark-mode-toggle nav-link" id="darkModeToggle">
-                                    <span id="darkModeIcon">🌙</span>
-                                </div>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Giriş Yap</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Kaydol</a>
-                            </li>
-                        }
-                    </ul>
+                    <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
@@ -131,46 +35,12 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - EventManagement.UI - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; @DateTime.Now.Year - Etkinlik Yönetim - <a asp-area="" asp-controller="Home" asp-action="Privacy">Gizlilik</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script>
-        // Dark mode toggle işlevselliği
-        document.addEventListener('DOMContentLoaded', function() {
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const darkModeIcon = document.getElementById('darkModeIcon');
-            const html = document.documentElement;
-            const navbar = document.querySelector('.navbar');
-            
-            // Kullanıcı tercihini yerel depolamadan al
-            const isDarkMode = localStorage.getItem('darkMode') === 'true';
-            
-            // Sayfa yüklendiğinde dark mode'u ayarla
-            if (isDarkMode) {
-                html.setAttribute('data-bs-theme', 'dark');
-                navbar.setAttribute('data-bs-theme', 'dark');
-                darkModeIcon.textContent = '☀️';
-            }
-            
-            // Dark mode toggle tıklama olayı
-            darkModeToggle.addEventListener('click', function() {
-                const currentTheme = html.getAttribute('data-bs-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
-                html.setAttribute('data-bs-theme', newTheme);
-                navbar.setAttribute('data-bs-theme', newTheme);
-                
-                // İkonu güncelle
-                darkModeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-                
-                // Kullanıcı tercihini yerel depolamaya kaydet
-                localStorage.setItem('darkMode', newTheme === 'dark');
-            });
-        });
-    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -66,5 +66,54 @@ namespace EventManagement.API.Controllers
             var result = await _userService.DeleteUserAsync(id, tenantId);
             return Ok(result);
         }
+        
+        [HttpGet("{id}/roles")]
+        public async Task<ActionResult<ResponseDto<List<Guid>>>> GetUserRoles(Guid id)
+        {
+            var tenantId = GetTenantId();
+            var user = await _userService.GetUserByIdAsync(id, tenantId);
+            
+            if (!user.IsSuccess)
+            {
+                return NotFound(ResponseDto<List<Guid>>.Fail("Kullanıcı bulunamadı"));
+            }
+            
+            var roles = user.Data.Roles?.Select(r => r.Id).ToList() ?? new List<Guid>();
+            return Ok(ResponseDto<List<Guid>>.Success(roles));
+        }
+        
+        [HttpPost("{id}/roles")]
+        public async Task<ActionResult<ResponseDto<bool>>> UpdateUserRoles(Guid id, [FromBody] UserRoleUpdateRequest request)
+        {
+            var tenantId = GetTenantId();
+            
+            // Kullanıcı mevcut mu diye kontrol et
+            var userResult = await _userService.GetUserByIdAsync(id, tenantId);
+            if (!userResult.IsSuccess)
+            {
+                return NotFound(ResponseDto<bool>.Fail("Kullanıcı bulunamadı"));
+            }
+            
+            // Her rol için ayrı işlem yap
+            var results = new List<bool>();
+            foreach (var roleId in request.RoleIds)
+            {
+                var assignRoleDto = new AssignRoleDto
+                {
+                    UserId = id,
+                    RoleId = roleId
+                };
+                
+                var result = await _userService.AssignRoleToUserAsync(assignRoleDto, tenantId);
+                results.Add(result.IsSuccess);
+            }
+            
+            return Ok(ResponseDto<bool>.Success(true, "Kullanıcı rolleri başarıyla güncellendi"));
+        }
+    }
+    
+    public class UserRoleUpdateRequest
+    {
+        public List<Guid> RoleIds { get; set; } = new List<Guid>();
     }
 } 

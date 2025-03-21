@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{15AB29EF-6
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.UI", "EventManagement.UI\EventManagement.UI.csproj", "{C633CD23-F901-45B4-8FD3-1EE2358996DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.UI", "EventManagement.UI\EventManagement.UI.csproj", "{43F7C54D-1034-4DD7-B96C-F29A1EEBB57A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,10 +41,10 @@ Global
 		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3F9EBC4-DFFA-4C60-B42A-CA2C828B3FEF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C633CD23-F901-45B4-8FD3-1EE2358996DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43F7C54D-1034-4DD7-B96C-F29A1EEBB57A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43F7C54D-1034-4DD7-B96C-F29A1EEBB57A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43F7C54D-1034-4DD7-B96C-F29A1EEBB57A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43F7C54D-1034-4DD7-B96C-F29A1EEBB57A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

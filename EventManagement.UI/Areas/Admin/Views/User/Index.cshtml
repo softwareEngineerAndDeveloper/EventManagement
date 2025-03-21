@@ -1,0 +1,729 @@
+@using EventManagement.UI.Models.User
+@model List<UserListViewModel>
+@{
+    ViewData["Title"] = "Kullanıcılar";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Kullanıcı Yönetimi</h1>
+        <button class="btn btn-sm btn-primary shadow-sm" id="btnNewUser">
+            <i class="fas fa-plus fa-sm text-white-50 me-1"></i> Yeni Kullanıcı
+        </button>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Content Row -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Kullanıcı Listesi</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Ad Soyad</th>
+                            <th>E-posta</th>
+                            <th>Telefon</th>
+                            <th>Tenant</th>
+                            <th>Roller</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>@user.PhoneNumber</td>
+                                <td>@user.TenantName</td>
+                                <td>
+                                    @if (user.Roles != null && user.Roles.Any())
+                                    {
+                                        foreach (var role in user.Roles)
+                                        {
+                                            <span class="badge bg-primary me-1">@role</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Rol atanmamış</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm btn-edit-user" data-id="@user.Id">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm btn-delete-user" data-id="@user.Id" data-name="@user.FullName">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Edit Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Kullanıcı Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- User Edit Form -->
+                <form id="userForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="userId" name="Id" />
+                    
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs mb-3" id="userTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">Genel Bilgiler</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab">Roller</button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab panes -->
+                    <div class="tab-content">
+                        <!-- General Info Tab -->
+                        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">Ad</label>
+                                    <input type="text" class="form-control" id="firstName" name="FirstName" required>
+                                    <div class="invalid-feedback" id="firstNameFeedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">Soyad</label>
+                                    <input type="text" class="form-control" id="lastName" name="LastName" required>
+                                    <div class="invalid-feedback" id="lastNameFeedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">E-posta</label>
+                                    <input type="email" class="form-control" id="email" name="Email" required>
+                                    <div class="invalid-feedback" id="emailFeedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="phoneNumber" class="form-label">Telefon</label>
+                                    <input type="text" class="form-control" id="phoneNumber" name="PhoneNumber">
+                                    <div class="invalid-feedback" id="phoneNumberFeedback"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="tenantName" class="form-label">Tenant</label>
+                                    <input type="text" class="form-control" id="tenantName" disabled>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="isActive" name="IsActive">
+                                        <label class="form-check-label" for="isActive">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="createdDate" class="form-label">Oluşturulma Tarihi</label>
+                                    <input type="text" class="form-control" id="createdDate" disabled>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="updatedDate" class="form-label">Güncelleme Tarihi</label>
+                                    <input type="text" class="form-control" id="updatedDate" disabled>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Roles Tab -->
+                        <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> Kullanıcıya atamak istediğiniz rolleri seçiniz.
+                                </div>
+                                <div id="rolesList" class="mt-3">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Yükleniyor...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="btnCreateUser">Oluştur</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateUser" style="display:none;">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Kullanıcı Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    <span id="deleteUserName"></span> adlı kullanıcıyı silmek istediğinize emin misiniz?
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Bu işlem geri alınamaz!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable
+            $('#usersTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json'
+                }
+            });
+            
+            // Kullanıcı düzenleme
+            $('.btn-edit-user').on('click', function() {
+                const userId = $(this).data('id');
+                loadUserDetails(userId);
+            });
+            
+            // Yeni Kullanıcı butonu tıklaması
+            $('#btnNewUser').click(function() {
+                resetUserForm();
+                
+                // Modal başlığını güncelle
+                $('#userModalLabel').text('Yeni Kullanıcı');
+                
+                // Kullanıcı ID'sini temizle
+                $('#userId').val('');
+                
+                // Create butonunu göster, Update butonunu gizle
+                $('#btnCreateUser').show();
+                $('#btnUpdateUser').hide();
+                
+                // Yeni kullanıcı için rolleri getir
+                loadAvailableRoles();
+                
+                // Modalı aç
+                $('#userModal').modal('show');
+            });
+            
+            // Kullanıcı silme
+            $('.btn-delete-user').on('click', function() {
+                const userId = $(this).data('id');
+                const userName = $(this).data('name');
+                
+                $('#deleteUserName').text(userName);
+                $('#btnConfirmDelete').data('id', userId);
+                $('#deleteUserModal').modal('show');
+            });
+            
+            // Kullanıcı silme onay
+            $('#btnConfirmDelete').on('click', function() {
+                const userId = $(this).data('id');
+                deleteUser(userId);
+            });
+            
+            // Kullanıcı güncelleme
+            $('#btnUpdateUser').click(function() {
+                if (!validateUserForm()) return;
+                
+                // Kullanıcı bilgilerini al
+                var userId = $('#userId').val();
+                var firstName = $('#firstName').val();
+                var lastName = $('#lastName').val();
+                var email = $('#email').val();
+                var phoneNumber = $('#phoneNumber').val();
+                var password = $('#password').val();
+                var isActive = $('#isActive').prop('checked');
+                
+                // Seçili rolleri al
+                var roleIds = [];
+                $('.role-checkbox:checked').each(function() {
+                    roleIds.push($(this).val());
+                });
+                
+                var data = {
+                    id: userId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phoneNumber: phoneNumber,
+                    password: password,
+                    isActive: isActive,
+                    roleIds: roleIds,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                };
+                
+                // AJAX isteği gönder
+                $.ajax({
+                    url: '@Url.Action("Update", "User", new { area = "Admin" })',
+                    type: 'POST',
+                    data: data,
+                    success: function(response) {
+                        if (response.success) {
+                            // Başarılı olduğunda
+                            $('#userModal').modal('hide');
+                            showSuccess('Kullanıcı başarıyla güncellendi.');
+                            
+                            // Rolleri güncelle
+                            if (roleIds.length > 0) {
+                                updateUserRoles(userId, roleIds);
+                            } else {
+                                // Sayfa yenilensin
+                                window.location.reload();
+                            }
+                        } else {
+                            // Hata durumunda
+                            showError(response.message);
+                            
+                            // Form validasyon hatalarını göster
+                            if (response.errors && response.errors.length > 0) {
+                                showFormErrors(response.errors);
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showError('Kullanıcı güncellenirken bir hata oluştu!');
+                    }
+                });
+            });
+            
+            // Kullanıcı oluşturma
+            $('#btnCreateUser').click(function() {
+                if (!validateUserForm()) return;
+                
+                // Kullanıcı bilgilerini al
+                var firstName = $('#firstName').val();
+                var lastName = $('#lastName').val();
+                var email = $('#email').val();
+                var phoneNumber = $('#phoneNumber').val();
+                var password = $('#password').val();
+                var isActive = $('#isActive').prop('checked');
+                
+                // Seçili rolleri al
+                var roleIds = [];
+                $('.role-checkbox:checked').each(function() {
+                    roleIds.push($(this).val());
+                });
+                
+                var data = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phoneNumber: phoneNumber,
+                    password: password,
+                    isActive: isActive,
+                    roleIds: roleIds,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                };
+                
+                // AJAX isteği gönder
+                $.ajax({
+                    url: '@Url.Action("Create", "User", new { area = "Admin" })',
+                    type: 'POST',
+                    data: data,
+                    success: function(response) {
+                        if (response.success) {
+                            // Başarılı olduğunda
+                            $('#userModal').modal('hide');
+                            showSuccess('Kullanıcı başarıyla oluşturuldu.');
+                            
+                            // Rolleri güncelle
+                            if (roleIds.length > 0 && response.userId) {
+                                updateUserRoles(response.userId, roleIds);
+                            } else {
+                                // Sayfa yenilensin
+                                window.location.reload();
+                            }
+                        } else {
+                            // Hata durumunda
+                            showError(response.message);
+                            
+                            // Form validasyon hatalarını göster
+                            if (response.errors && response.errors.length > 0) {
+                                showFormErrors(response.errors);
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showError('Kullanıcı oluşturulurken bir hata oluştu!');
+                    }
+                });
+            });
+        });
+        
+        // Kullanıcı detaylarını getir
+        function loadUserDetails(userId) {
+            if (!userId) return;
+            
+            $.ajax({
+                url: '@Url.Action("GetUserDetail", "User", new { area = "Admin" })/' + userId,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const user = response.data;
+                        
+                        // Form alanlarını doldur
+                        $('#userId').val(user.id);
+                        $('#firstName').val(user.firstName);
+                        $('#lastName').val(user.lastName);
+                        $('#email').val(user.email);
+                        $('#phoneNumber').val(user.phoneNumber);
+                        $('#tenantName').val(user.tenantName);
+                        $('#isActive').prop('checked', user.isActive);
+                        $('#createdDate').val(formatDate(user.createdDate));
+                        $('#updatedDate').val(formatDate(user.updatedDate));
+                        
+                        // Modal başlığını güncelle
+                        $('#userModalLabel').text('Kullanıcı Düzenle');
+                        
+                        // Create butonunu gizle, Update butonunu göster
+                        $('#btnCreateUser').hide();
+                        $('#btnUpdateUser').show();
+                        
+                        // Kullanıcı rollerini getir
+                        loadUserRoles(user.id);
+                        
+                        // Modalı aç
+                        $('#userModal').modal('show');
+                    } else {
+                        showError('Kullanıcı bilgileri alınamadı: ' + (response.message || 'Bilinmeyen bir hata oluştu'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showError('Kullanıcı bilgileri alınırken bir hata oluştu!');
+                }
+            });
+        }
+        
+        // Kullanıcı rollerini getir
+        function loadUserRoles(userId) {
+            if (!userId) return;
+            
+            // Önce mevcut rolleri getir
+            $.ajax({
+                url: '@Url.Action("GetRoles", "User", new { area = "Admin" })',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.roles) {
+                        let html = '';
+                        const roles = response.roles;
+                        
+                        if (roles.length > 0) {
+                            html += '<div class="row">';
+                            roles.forEach(function(role) {
+                                html += '<div class="col-md-6 mb-2">';
+                                html += '<div class="form-check">';
+                                html += `<input class="form-check-input role-checkbox" type="checkbox" id="role_${role.id}" value="${role.id}">`;
+                                html += `<label class="form-check-label" for="role_${role.id}">${role.name}</label>`;
+                                html += '</div>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                            
+                            $('#rolesList').html(html);
+                            
+                            // Sonra kullanıcının rollerini getir ve işaretle
+                            $.ajax({
+                                url: '@Url.Action("GetUserRoles", "User", new { area = "Admin" })/' + userId,
+                                type: 'GET',
+                                success: function(roleResponse) {
+                                    if (roleResponse.success && roleResponse.roles) {
+                                        // Kullanıcının rollerini işaretle
+                                        roleResponse.roles.forEach(function(roleId) {
+                                            $('#role_' + roleId).prop('checked', true);
+                                        });
+                                    }
+                                }
+                            });
+                        } else {
+                            $('#rolesList').html('<div class="alert alert-warning">Roller bulunamadı!</div>');
+                        }
+                    } else {
+                        $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                }
+            });
+        }
+        
+        // Rolleri güncelle
+        function updateUserRoles(userId, roleIds) {
+            if (!userId) return;
+            
+            const data = {
+                userId: userId,
+                roleIds: roleIds,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            };
+            
+            $.ajax({
+                url: '@Url.Action("UpdateRoles", "User", new { area = "Admin" })',
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess('Kullanıcı ve rolleri başarıyla güncellendi.');
+                        window.location.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showError('Roller güncellenirken bir hata oluştu!');
+                }
+            });
+        }
+        
+        // Kullanıcı silme
+        function deleteUser(userId) {
+            if (!userId) return;
+            
+            $.ajax({
+                url: '@Url.Action("Delete", "User", new { area = "Admin" })',
+                type: 'POST',
+                data: {
+                    id: userId,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#deleteUserModal').modal('hide');
+                        showSuccess('Kullanıcı başarıyla silindi.');
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showError('Kullanıcı silinirken bir hata oluştu!');
+                }
+            });
+        }
+        
+        // Tarih formatı
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            
+            const date = new Date(dateString);
+            return date.toLocaleString('tr-TR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showSuccess(message) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Başarılı!',
+                text: message,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+        
+        function showError(message) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata!',
+                text: message
+            });
+        }
+
+        function loadAvailableRoles() {
+            $.ajax({
+                url: '@Url.Action("GetRoles", "User", new { area = "Admin" })',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        let html = '';
+                        if (response.roles && response.roles.length > 0) {
+                            html += '<div class="row">';
+                            response.roles.forEach(function(role) {
+                                html += '<div class="col-md-6 mb-2">';
+                                html += '<div class="form-check">';
+                                html += `<input class="form-check-input role-checkbox" type="checkbox" id="role_${role.id}" value="${role.id}">`;
+                                html += `<label class="form-check-label" for="role_${role.id}">${role.name}</label>`;
+                                html += '</div>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        } else {
+                            html = '<div class="alert alert-warning">Roller bulunamadı!</div>';
+                        }
+                        $('#rolesList').html(html);
+                    } else {
+                        $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                }
+            });
+        }
+
+        // Form doğrulama fonksiyonu
+        function validateUserForm() {
+            // Form validasyonunu resetle
+            $('.is-invalid').removeClass('is-invalid');
+            $('.invalid-feedback').text('');
+            
+            var isValid = true;
+            
+            // Ad kontrolü
+            if (!$('#firstName').val()) {
+                $('#firstName').addClass('is-invalid');
+                $('#firstNameFeedback').text('Ad alanı zorunludur.');
+                isValid = false;
+            }
+            
+            // Soyad kontrolü
+            if (!$('#lastName').val()) {
+                $('#lastName').addClass('is-invalid');
+                $('#lastNameFeedback').text('Soyad alanı zorunludur.');
+                isValid = false;
+            }
+            
+            // Email kontrolü
+            var email = $('#email').val();
+            if (!email) {
+                $('#email').addClass('is-invalid');
+                $('#emailFeedback').text('E-posta alanı zorunludur.');
+                isValid = false;
+            } else if (email.indexOf('@@') === -1 || email.indexOf('.') === -1) {
+                $('#email').addClass('is-invalid');
+                $('#emailFeedback').text('Geçerli bir e-posta adresi giriniz.');
+                isValid = false;
+            }
+            
+            // Yeni kullanıcı oluşturuluyorsa şifre zorunlu
+            if ($('#userId').val() === '' && !$('#password').val()) {
+                $('#password').addClass('is-invalid');
+                $('#passwordFeedback').text('Şifre alanı zorunludur.');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        // Form hatalarını gösterme
+        function showFormErrors(errors) {
+            if (!errors || errors.length === 0) return;
+            
+            // Her bir hata için uygun input alanının yanına mesajı göster
+            errors.forEach(function(error) {
+                // Hata mesajından alan adını çıkarmaya çalış
+                var fieldMatch = error.match(/^(.*?) alanı/);
+                if (fieldMatch && fieldMatch[1]) {
+                    var fieldName = fieldMatch[1].toLowerCase();
+                    
+                    // Alan adına göre uygun input'u bul
+                    switch (fieldName) {
+                        case 'ad':
+                            $('#firstName').next('.invalid-feedback').text(error);
+                            $('#firstName').addClass('is-invalid');
+                            break;
+                        case 'soyad':
+                            $('#lastName').next('.invalid-feedback').text(error);
+                            $('#lastName').addClass('is-invalid');
+                            break;
+                        case 'e-posta':
+                            $('#email').next('.invalid-feedback').text(error);
+                            $('#email').addClass('is-invalid');
+                            break;
+                        case 'telefon':
+                            $('#phoneNumber').next('.invalid-feedback').text(error);
+                            $('#phoneNumber').addClass('is-invalid');
+                            break;
+                        case 'şifre':
+                            $('#password').next('.invalid-feedback').text(error);
+                            $('#password').addClass('is-invalid');
+                            break;
+                        default:
+                            // Genel hata olarak göster
+                            showError(error);
+                    }
+                } else {
+                    // Alan adı bulunamazsa genel hata olarak göster
+                    showError(error);
+                }
+            });
+        }
+
+        // Form sıfırlama
+        function resetUserForm() {
+            // Form içeriğini temizle
+            $('#userForm')[0].reset();
+            
+            // Validasyon sınıflarını kaldır
+            $('.is-invalid').removeClass('is-invalid');
+            $('.invalid-feedback').text('');
+            
+            // Role checkboxlarını temizle
+            $('#rolesList').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Yükleniyor...</span></div></div>');
+        }
+    </script>
+    
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

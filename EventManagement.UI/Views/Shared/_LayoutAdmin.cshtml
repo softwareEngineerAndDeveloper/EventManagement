@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Yönetim Paneli</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/EventManagement.UI.styles.css" asp-append-version="true" />
+</head>
+<body id="page-top">
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+            <!-- Sidebar - Brand -->
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" id="brandLink">
+                <div class="sidebar-brand-icon rotate-n-15">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="sidebar-brand-text mx-3">Yönetim Paneli</div>
+            </a>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0">
+
+            <!-- Nav Item - Dashboard -->
+            <li class="nav-item active">
+                <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Gösterge Paneli</span>
+                </a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Yönetim
+            </div>
+
+            <!-- Nav Item - Users -->
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-controller="User" asp-action="Index">
+                    <i class="fas fa-fw fa-users"></i>
+                    <span>Kullanıcılar</span>
+                </a>
+            </li>
+
+            <!-- Nav Item - Tenants -->
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-controller="Tenant" asp-action="Index">
+                    <i class="fas fa-fw fa-building"></i>
+                    <span>Tenant'lar</span>
+                </a>
+            </li>
+
+            <!-- Nav Item - Events -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseEvents"
+                   aria-expanded="true" aria-controls="collapseEvents">
+                    <i class="fas fa-fw fa-calendar"></i>
+                    <span>Etkinlikler</span>
+                </a>
+                <div id="collapseEvents" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Etkinlik Yönetimi:</h6>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Index">Tüm Etkinlikler</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Create">Yeni Etkinlik</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Approvals">Onay Bekleyenler</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Registrations -->
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-controller="Registration" asp-action="Index">
+                    <i class="fas fa-fw fa-clipboard-list"></i>
+                    <span>Kayıtlar</span>
+                </a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Raporlar
+            </div>
+
+            <!-- Nav Item - Reports -->
+            <li class="nav-item">
+                <a class="nav-link" asp-area="Admin" asp-controller="Report" asp-action="Index">
+                    <i class="fas fa-fw fa-chart-area"></i>
+                    <span>Raporlar</span>
+                </a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider d-none d-md-block">
+
+            <!-- Sidebar Toggler (Sidebar) -->
+            <div class="text-center d-none d-md-inline">
+                <button class="rounded-circle border-0" id="sidebarToggle"></button>
+            </div>
+        </ul>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <!-- Main Content -->
+            <div id="content">
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle me-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ms-auto">
+                        <!-- Dark Mode Switcher -->
+                        <li class="nav-item theme-switch-wrapper">
+                            <i class="fas fa-sun"></i>
+                            <label class="theme-switch" for="darkModeToggle">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <i class="fas fa-moon"></i>
+                        </li>
+
+                        @{
+                            var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
+                        }
+                        @if (isAuthenticated)
+                        {
+                        <div class="topbar-divider d-none d-sm-block"></div>
+                        
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                               data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="me-2 d-none d-lg-inline text-gray-600 small">@User.Identity?.Name</span>
+                                <i class="fas fa-user-circle fa-fw fa-lg text-gray-600"></i>
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in"
+                                 aria-labelledby="userDropdown">
+                                <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                                    <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
+                                    Profil
+                                </a>
+                                <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="ChangePassword">
+                                    <i class="fas fa-key fa-sm fa-fw me-2 text-gray-400"></i>
+                                    Şifre Değiştir
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i>
+                                    Çıkış Yap
+                                </a>
+                            </div>
+                        </li>
+                        }
+                    </ul>
+                </nav>
+                <!-- End of Topbar -->
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                    @RenderBody()
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; @DateTime.Now.Year - Etkinlik Yönetim Sistemi</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+        </div>
+        <!-- End of Content Wrapper -->
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Çıkış yapmak istediğinize emin misiniz?</h5>
+                    <button class="close" type="button" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Mevcut oturumunuzu sonlandırmak için "Çıkış Yap" düğmesine tıklayın.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" id="logoutForm">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary">Çıkış Yap</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/js/admin.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Çıkış işlemi için özel script -->
+    <script>
+        document.getElementById('logoutForm')?.addEventListener('submit', function(e) {
+            // Form normal şekilde gönderilsin
+            // Ardından, tarayıcı önbelleğini temizleme girişimi
+            setTimeout(function() {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                }
+                // Session storage ve local storage'ı temizle
+                sessionStorage.clear();
+                localStorage.clear();
+            }, 100);
+        });
+
+        // Üst menüdeki Etkinlik Yönetim başlığına tıklandığında Admin panele yönlendirme
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sayfada "Etkinlik Yönetim" başlığına sahip elemana tıklandığında
+            var headerElements = document.querySelectorAll('a');
+            headerElements.forEach(function(el) {
+                if (el.textContent.trim() === 'Etkinlik Yönetim') {
+                    el.setAttribute('href', '/Admin/Dashboard');
+                    console.log('Etkinlik Yönetim başlığı linki düzeltildi');
+                }
+            });
+
+            // Direkt olarak title header'ını hedefle
+            var brandLink = document.querySelector('.navbar-brand');
+            if (brandLink) {
+                brandLink.setAttribute('href', '/Admin/Dashboard');
+                console.log('Navbar marka linki düzeltildi');
+            }
+        });
+    </script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html> 
