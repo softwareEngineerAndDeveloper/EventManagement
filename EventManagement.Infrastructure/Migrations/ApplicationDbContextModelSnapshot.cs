@@ -22,6 +22,66 @@ namespace EventManagement.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("EventManagement.Domain.Entities.Attendee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("HasAttended")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("RegistrationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Attendees");
+                });
+
             modelBuilder.Entity("EventManagement.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -312,6 +372,25 @@ namespace EventManagement.Infrastructure.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("EventManagement.Domain.Entities.Attendee", b =>
+                {
+                    b.HasOne("EventManagement.Domain.Entities.Event", "Event")
+                        .WithMany("Attendees")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EventManagement.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Attendees")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("EventManagement.Domain.Entities.Event", b =>
                 {
                     b.HasOne("EventManagement.Domain.Entities.User", "Creator")
@@ -401,6 +480,8 @@ namespace EventManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("EventManagement.Domain.Entities.Event", b =>
                 {
+                    b.Navigation("Attendees");
+
                     b.Navigation("Registrations");
                 });
 
@@ -411,6 +492,8 @@ namespace EventManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("EventManagement.Domain.Entities.Tenant", b =>
                 {
+                    b.Navigation("Attendees");
+
                     b.Navigation("Events");
 
                     b.Navigation("Users");

@@ -1,0 +1,259 @@
+@model EventManagement.UI.DTOs.EventDto
+@using EventManagement.UI.DTOs
+@using EventManagement.Domain.Entities
+
+@{
+    ViewData["Title"] = "Etkinlik Detayı";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2>@Model.Title</h2>
+            @{
+                var isActiveStatus = (Model.Status == EventStatus.Approved && !Model.IsCancelled && Model.IsActive);
+            }
+            <span class="badge @(isActiveStatus ? "bg-success" : "bg-danger")">
+                @(isActiveStatus ? "Aktif" : "Pasif")
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-4">
+                        <h4>Etkinlik Bilgileri</h4>
+                        <hr />
+                        <dl class="row">
+                            <dt class="col-sm-3">Açıklama:</dt>
+                            <dd class="col-sm-9">@Model.Description</dd>
+
+                            <dt class="col-sm-3">Başlangıç:</dt>
+                            <dd class="col-sm-9">@Model.StartDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                            <dt class="col-sm-3">Bitiş:</dt>
+                            <dd class="col-sm-9">@Model.EndDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                            <dt class="col-sm-3">Konum:</dt>
+                            <dd class="col-sm-9">@Model.Location</dd>
+
+                            <dt class="col-sm-3">Kapasite:</dt>
+                            <dd class="col-sm-9">@(Model.Capacity != null ? Model.Capacity.ToString() : "Sınırsız")</dd>
+
+                            <dt class="col-sm-3">Maksimum Katılımcı:</dt>
+                            <dd class="col-sm-9">@(Model.MaxAttendees != null ? Model.MaxAttendees.ToString() : "Belirtilmemiş")</dd>
+
+                            <dt class="col-sm-3">Kayıt Sayısı:</dt>
+                            <dd class="col-sm-9">@Model.RegistrationCount</dd>
+
+                            <dt class="col-sm-3">Durum:</dt>
+                            <dd class="col-sm-9">
+                                @if (Model.IsCancelled)
+                                {
+                                    <span class="badge bg-danger">İptal Edildi</span>
+                                }
+                                else if (Model.Status == EventStatus.Pending)
+                                {
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                }
+                                else if (Model.Status == EventStatus.Approved)
+                                {
+                                    <span class="badge bg-success">Onaylandı</span>
+                                }
+                                else if (Model.Status == EventStatus.Rejected)
+                                {
+                                    <span class="badge bg-danger">Reddedildi</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-3">Türü:</dt>
+                            <dd class="col-sm-9">
+                                @(Model.IsPublic ? "Halka Açık" : "Özel")
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h5>Etkinlik Detayları</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>
+                                <i class="bi bi-calendar-check"></i> 
+                                <strong>Tarih:</strong> @Model.StartDate.ToString("dd MMMM yyyy")
+                            </p>
+                            <p>
+                                <i class="bi bi-clock"></i> 
+                                <strong>Saat:</strong> @Model.StartDate.ToString("HH:mm") - @Model.EndDate.ToString("HH:mm")
+                            </p>
+                            <p>
+                                <i class="bi bi-geo-alt"></i> 
+                                <strong>Yer:</strong> @Model.Location
+                            </p>
+                            <p>
+                                <i class="bi bi-people"></i> 
+                                <strong>Katılımcı:</strong> @Model.RegistrationCount / @(Model.Capacity ?? 0)
+                            </p>
+                            <p>
+                                <i class="bi bi-people-fill"></i> 
+                                <strong>Max Katılımcı:</strong> @(Model.MaxAttendees ?? Model.Capacity ?? 0)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-grid gap-2">
+                @if (DateTime.Now <= Model.StartDate && Model.Status == EventStatus.Approved && !Model.IsCancelled)
+                {
+                    <a asp-controller="Event" asp-action="Register" asp-route-id="@Model.Id" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Kaydol
+                    </a>
+                }
+                
+                @if (User.IsInRole("Admin") || User.IsInRole("EventManager"))
+                {
+                    <a asp-controller="Event" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Düzenle
+                    </a>
+                    <a asp-controller="Event" asp-action="Statistics" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="bi bi-bar-chart"></i> İstatistikler
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#participantsModal" data-event-id="@Model.Id" data-event-title="@Model.Title">
+                        <i class="bi bi-people"></i> Katılımcılar
+                    </button>
+                }
+                
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Tüm Etkinlikler
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("~/Views/Shared/_ParticipantModal.cshtml") 
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Etkinlik ID'sini sayfadan al
+            var eventId = '@Model.Id';
+            
+            // Katılımcılar modalı açılınca
+            $('#participantsModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var eventId = button.data('event-id');
+                var eventTitle = button.data('event-title');
+                var modal = $(this);
+                
+                modal.find('.modal-title').text(eventTitle + ' - Katılımcılar');
+                modal.find('.modal-title').data('event-id', eventId);
+                
+                // Yükleniyor göstergesini göster, listeyi gizle
+                $('#participantsLoading').show();
+                $('#participantsList').addClass('d-none');
+                $('#noParticipants').addClass('d-none');
+                
+                // API'den katılımcıları getir
+                $.ajax({
+                    url: '/Event/GetEventParticipants',
+                    type: 'GET',
+                    data: { id: eventId },
+                    success: function(response) {
+                        $('#participantsLoading').hide();
+                        
+                        if (response.success && response.data && response.data.length > 0) {
+                            // İstatistikleri güncelle
+                            var confirmed = response.data.filter(p => p.status === 1).length;
+                            var waiting = response.data.filter(p => p.status === 0).length;
+                            var cancelled = response.data.filter(p => p.isCancelled).length;
+                            
+                            $('#totalParticipants').text(response.data.length);
+                            $('#confirmedParticipants').text(confirmed);
+                            $('#waitingParticipants').text(waiting);
+                            $('#cancelledParticipants').text(cancelled);
+                            
+                            // Katılımcı tablosunu doldur
+                            var tbody = $('#participantsTableBody');
+                            tbody.empty();
+                            
+                            response.data.forEach(function(participant) {
+                                var statusBadge = '';
+                                
+                                if (participant.isCancelled) {
+                                    statusBadge = '<span class="badge bg-danger">İptal</span>';
+                                } else if (participant.status === 0) {
+                                    statusBadge = '<span class="badge bg-warning text-dark">Beklemede</span>';
+                                } else if (participant.status === 1) {
+                                    statusBadge = '<span class="badge bg-success">Onaylı</span>';
+                                }
+                                
+                                var row = '<tr>' +
+                                    '<td>' + participant.name + '</td>' +
+                                    '<td>' + participant.email + '</td>' +
+                                    '<td>' + (participant.phone || '-') + '</td>' +
+                                    '<td>' + statusBadge + '</td>' +
+                                    '<td>' +
+                                        '<button class="btn btn-sm btn-outline-primary me-1 edit-participant" data-id="' + participant.id + '">Düzenle</button>' +
+                                        '<button class="btn btn-sm btn-outline-danger remove-participant" data-id="' + participant.id + '">Sil</button>' +
+                                    '</td>' +
+                                '</tr>';
+                                
+                                tbody.append(row);
+                            });
+                            
+                            $('#participantsList').removeClass('d-none');
+                        } else {
+                            $('#noParticipants').removeClass('d-none');
+                        }
+                    },
+                    error: function() {
+                        $('#participantsLoading').hide();
+                        $('#noParticipants').removeClass('d-none').text('Katılımcılar yüklenirken bir hata oluştu.');
+                    }
+                });
+            });
+            
+            // İstatistikler butonuna tıklandığında
+            $(document).on('click', 'a[href*="Statistics"]', function(e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                
+                // AJAX ile istatistikleri yükle
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    success: function(response) {
+                        // İstatistik verilerini işle ve göster
+                        // Bu kısım istatistik modalını açabilir
+                        window.location.href = url;
+                    }
+                });
+            });
+            
+            // Katılımcı silme butonuna tıklandığında
+            $(document).on('click', '.remove-participant', function() {
+                var id = $(this).data('id');
+                if (confirm('Bu katılımcıyı silmek istediğinize emin misiniz?')) {
+                    $.ajax({
+                        url: '/Event/DeleteParticipant',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function(response) {
+                            if (response.success) {
+                                toastr.success(response.message);
+                                // Modal'ı yeniden yükle
+                                $('#participantsModal').trigger('show.bs.modal');
+                            } else {
+                                toastr.error(response.message);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+} 

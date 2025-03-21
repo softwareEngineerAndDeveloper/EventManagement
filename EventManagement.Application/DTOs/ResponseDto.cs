@@ -1,13 +1,15 @@
+using System;
+
 namespace EventManagement.Application.DTOs
 {
     public class ResponseDto<T>
     {
         public bool IsSuccess { get; set; }
-        public string? Message { get; set; }
+        public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
         public List<string>? Errors { get; set; }
         
-        public static ResponseDto<T> Success(T data, string? message = null)
+        public static ResponseDto<T> Success(T data, string message = "İşlem başarılı")
         {
             return new ResponseDto<T>
             {

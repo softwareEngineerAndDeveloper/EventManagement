@@ -1,19 +1,21 @@
-using EventManagement.UI.Models.DTOs;
 using EventManagement.UI.Services;
+using EventManagement.UI.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using EventManagement.UI.DTOs;
+using EventManagement.UI.Models;
 
 namespace EventManagement.UI.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly IApiService _apiService;
+        private readonly IApiServiceUI _apiService;
         private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IApiService apiService, ILogger<AccountController> logger)
+        public AccountController(IApiServiceUI apiService, ILogger<AccountController> logger)
         {
             _apiService = apiService;
             _logger = logger;
@@ -121,12 +123,19 @@ namespace EventManagement.UI.Controllers
 
                                 Console.WriteLine("Login başarılı, kullanıcı yönlendiriliyor");
                                 
-                                // Admin rolüne sahip kullanıcıyı Admin sayfasına yönlendir
+                                // Admin veya EventManager rolündeki kullanıcıları Admin/Index'e yönlendir
                                 Console.WriteLine($"Kullanıcı Admin rolüne sahip mi? {roles.Contains("Admin")}");
+                                Console.WriteLine($"Kullanıcı EventManager rolüne sahip mi? {roles.Contains("EventManager")}");
+                                
                                 if (roles.Contains("Admin"))
                                 {
                                     Console.WriteLine("Admin sayfasına yönlendiriliyor...");
                                     return RedirectToAction("Index", "Admin");
+                                }
+                                else if (roles.Contains("EventManager"))
+                                {
+                                    Console.WriteLine("EventManager sayfasına yönlendiriliyor...");
+                                    return RedirectToAction("Manager", "Event");
                                 }
                                 
                                 Console.WriteLine("Ana sayfaya yönlendiriliyor...");
@@ -194,13 +203,19 @@ namespace EventManagement.UI.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            // 1. Cookie tabanlı kimlik doğrulamayı temizle
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             
-            // Token cookie'sini temizle
+            // 2. Cookie'yi temizle
             Response.Cookies.Delete("jwt_token");
             
+            // 3. Session'ı tamamen temizle
+            HttpContext.Session.Clear();
+            
             _logger.LogInformation("Kullanıcı çıkış yaptı");
-            return RedirectToAction("Index", "Home");
+            
+            // 4. Login sayfasına yönlendir
+            return RedirectToAction("Login", "Account");
         }
 
         public IActionResult AccessDenied()
@@ -208,39 +223,80 @@ namespace EventManagement.UI.Controllers
             return View();
         }
 
-        private async Task SignInUserAsync(UserDto user)
+        [HttpGet]
+        public async Task<IActionResult> Profile()
         {
-            var claims = new List<Claim>
+            try
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role),
-                new Claim("tenant_id", user.TenantId.ToString())
-            };
+                // Session'dan UserID'yi al
+                var userId = HttpContext.Session.GetString("UserId");
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return RedirectToAction("Login");
+                }
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
+                // API'den mevcut kullanıcı bilgilerini çek
+                var user = await _apiService.GetCurrentUserAsync();
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                // Kullanıcı bilgilerini içeren model oluştur
+                var profileModel = new ProfileViewModel
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber
+                };
+
+                return View(profileModel);
+            }
+            catch (Exception ex)
             {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
+                _logger.LogError(ex, "Profil bilgileri alınırken hata oluştu");
+                return RedirectToAction("Index", "Home");
+            }
         }
 
-        private IActionResult RedirectToLocal(string returnUrl)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProfile(ProfileViewModel model)
         {
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            if (!ModelState.IsValid)
             {
-                return Redirect(returnUrl);
+                return View("Profile", model);
             }
-            else
+
+            try
             {
-                return RedirectToAction(nameof(HomeController.Index), "Home");
+                // Update DTO oluştur
+                var updateProfileDto = new UpdateProfileDto
+                {
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    PhoneNumber = model.PhoneNumber
+                };
+
+                // API'ye güncelleme isteği gönder
+                var result = await _apiService.UpdateCurrentUserAsync(updateProfileDto);
+                if (result)
+                {
+                    TempData["SuccessMessage"] = "Profil bilgileriniz başarıyla güncellendi.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Profil güncellenirken bir hata oluştu.";
+                }
+
+                return RedirectToAction(nameof(Profile));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Profil güncellenirken hata oluştu");
+                TempData["ErrorMessage"] = $"Profil güncellenirken bir hata oluştu: {ex.Message}";
+                return View("Profile", model);
             }
         }
     }

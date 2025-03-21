@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using EventManagement.Domain.Entities;
 
@@ -34,15 +35,15 @@ namespace EventManagement.Application.DTOs
         public DateTime CreatedDate { get; set; }
         public DateTime? UpdatedDate { get; set; }
     }
-    
+
     public class CreateEventDto
     {
         [Required]
         [MaxLength(100)]
-        public required string Title { get; set; }
-
+        public string Title { get; set; } = string.Empty;
+        
         [MaxLength(500)]
-        public required string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         
         [Required]
         public DateTime StartDate { get; set; }
@@ -51,25 +52,28 @@ namespace EventManagement.Application.DTOs
         public DateTime EndDate { get; set; }
         
         [MaxLength(200)]
-        public required string Location { get; set; }
+        public string Location { get; set; } = string.Empty;
         
         public int? MaxAttendees { get; set; }
         
         public bool IsPublic { get; set; } = true;
         
         [Required]
+        public Guid TenantId { get; set; }
+        
+        [Required]
         public Guid CreatorId { get; set; }
     }
-    
+
     public class UpdateEventDto
     {
         [Required]
         [MaxLength(100)]
-        public required string Title { get; set; }
-
+        public string Title { get; set; } = string.Empty;
+        
         [MaxLength(500)]
-        public required string Description { get; set; }
-
+        public string Description { get; set; } = string.Empty;
+        
         [Required]
         public DateTime StartDate { get; set; }
         
@@ -77,16 +81,17 @@ namespace EventManagement.Application.DTOs
         public DateTime EndDate { get; set; }
         
         [MaxLength(200)]
-        public required string Location { get; set; }
-
+        public string Location { get; set; } = string.Empty;
+        
         public int? MaxAttendees { get; set; }
-
+        
         public bool IsPublic { get; set; }
         
         public bool IsCancelled { get; set; }
+        
+        public EventStatus Status { get; set; } = EventStatus.Approved;
     }
 
-    // Filtreleme için DTO
     public class EventFilterDto
     {
         public DateTime? StartDate { get; set; }
@@ -95,20 +100,5 @@ namespace EventManagement.Application.DTOs
         public bool? IsUpcoming { get; set; }
         public bool? IsPast { get; set; }
         public bool? IsCancelled { get; set; }
-    }
-
-    // İstatistikler için DTO
-    public class EventStatisticsDto
-    {
-        public Guid EventId { get; set; }
-        public required string EventTitle { get; set; }
-        public int Capacity { get; set; }
-        public int TotalRegistrations { get; set; }
-        public int ConfirmedRegistrations { get; set; }
-        public int CancelledRegistrations { get; set; }
-        public int WaitingRegistrations { get; set; }
-        public int AvailableSeats { get; set; }
-        public int AttendedCount { get; set; }
-        public decimal AttendanceRate { get; set; } // Katılım oranı (yüzde)
     }
 } 

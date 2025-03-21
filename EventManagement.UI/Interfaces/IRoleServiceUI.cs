@@ -1,10 +1,10 @@
 using EventManagement.UI.Models;
 
-namespace EventManagement.UI.Services
+namespace EventManagement.UI.Interfaces
 {
-    public interface IRoleService
+    public interface IRoleServiceUI
     {
         Task<List<RoleViewModel>> GetAllRolesAsync(Guid tenantId);
         Task<RoleViewModel?> GetRoleByIdAsync(Guid id, Guid tenantId);
     }
-} 
+}

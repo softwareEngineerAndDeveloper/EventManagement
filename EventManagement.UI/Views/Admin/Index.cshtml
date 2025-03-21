@@ -1,8 +1,8 @@
-@model List<EventManagement.UI.Models.DTOs.EventDto>
-@using EventManagement.UI.Models.DTOs
+@model List<EventManagement.UI.DTOs.EventDto>
+@using EventManagement.UI.DTOs
+@using EventManagement.Domain.Entities
 @{
     ViewData["Title"] = "Admin Dashboard";
-    Layout = "_AdminLayout";
 }
 
 <div class="container-fluid px-4">
@@ -49,25 +49,6 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-white mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-0">Onay Bekleyenler</h5>
-                            <h2 class="mb-0 mt-2">@(Model?.Count(e => e.Status == EventStatus.Pending) ?? 0)</h2>
-                        </div>
-                        <div class="rounded-circle bg-warning-light p-3">
-                            <i class="bi bi-hourglass-split fs-1"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a class="small text-white stretched-link" href="#pendingEventsSection">Detayları Görüntüle</a>
-                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
             <div class="card bg-danger text-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -87,282 +68,16 @@
             </div>
         </div>
     </div>
-    
-    <div class="row">
-        <!-- Grafik -->
-        <div class="col-xl-8">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-bar-chart-line me-1"></i>
-                        Aylık Etkinlik İstatistikleri
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chartDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chartDropdown">
-                            <li><a class="dropdown-item" href="#">Bu Yıl</a></li>
-                            <li><a class="dropdown-item" href="#">Geçen Yıl</a></li>
-                            <li><a class="dropdown-item" href="#">Tüm Zamanlar</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="eventChart" width="100%" height="40"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Pasta Grafik -->
-        <div class="col-xl-4">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-pie-chart me-1"></i>
-                        Etkinlik Durumları
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="pieChartDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="pieChartDropdown">
-                            <li><a class="dropdown-item" href="#">Bu Ay</a></li>
-                            <li><a class="dropdown-item" href="#">Bu Yıl</a></li>
-                            <li><a class="dropdown-item" href="#">Tüm Zamanlar</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="statusPieChart" width="100%" height="50"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Onay Bekleyen Etkinlikler -->
-    <div id="pendingEventsSection" class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">Onay Bekleyen Etkinlikler</h6>
-            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#pendingEventsContent">
-                <i class="bi bi-chevron-down"></i>
-            </button>
-        </div>
-        <div class="card-body collapse show" id="pendingEventsContent">
-            @if (Model.Any(e => e.Status == EventStatus.Pending))
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover" id="pendingEventsTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th>Başlık</th>
-                                <th>Başlangıç</th>
-                                <th>Konum</th>
-                                <th>Kapasite</th>
-                                <th>Oluşturan</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var eventItem in Model.Where(e => e.Status == EventStatus.Pending))
-                            {
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="event-icon rounded-circle p-2 me-2 bg-light">
-                                                <i class="bi bi-calendar-event text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold">@eventItem.Title</div>
-                                                <small class="text-muted">@(eventItem.Description?.Length > 30 ? eventItem.Description.Substring(0, 27) + "..." : eventItem.Description)</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>@eventItem.StartDate.ToString("dd.MM.yyyy HH:mm")</td>
-                                    <td>@eventItem.Location</td>
-                                    <td>@(eventItem.Capacity?.ToString() ?? "-")</td>
-                                    <td>
-                                        @if (eventItem.CreatorId != null)
-                                        {
-                                            <span class="badge bg-info text-dark">@eventItem.CreatorId</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Sistem</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <form asp-action="ApproveEvent" method="post">
-                                                <input type="hidden" name="id" value="@eventItem.Id" />
-                                                <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="bi bi-check2"></i>
-                                                </button>
-                                            </form>
-                                            <form asp-action="RejectEvent" method="post" class="ms-1">
-                                                <input type="hidden" name="id" value="@eventItem.Id" />
-                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                    <i class="bi bi-x"></i>
-                                                </button>
-                                            </form>
-                                            <a class="btn btn-info btn-sm ms-1" asp-controller="Event" asp-action="Details" asp-route-id="@eventItem.Id">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="alert alert-info">
-                    Onay bekleyen etkinlik bulunmamaktadır.
-                </div>
-            }
-        </div>
-    </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Tema renkleri
-        const getThemeColor = () => {
-            return document.body.classList.contains('dark-mode') ? 
-                { 
-                    primary: '#3b82f6',
-                    success: '#10b981',
-                    warning: '#f59e0b',
-                    danger: '#ef4444',
-                    info: '#3b82f6',
-                    light: '#f3f4f6',
-                    dark: '#1f2937',
-                    chartText: '#e5e7eb',
-                    gridLines: 'rgba(255, 255, 255, 0.1)'
-                } : 
-                { 
-                    primary: '#0d6efd',
-                    success: '#198754',
-                    warning: '#ffc107',
-                    danger: '#dc3545',
-                    info: '#0dcaf0',
-                    light: '#f8f9fa',
-                    dark: '#212529',
-                    chartText: '#212529',
-                    gridLines: 'rgba(0, 0, 0, 0.1)'
-                };
-        };
-
-        // Bar Grafiği
-        const initBarChart = () => {
-            const ctx = document.getElementById('eventChart');
-            const colors = getThemeColor();
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
-                    datasets: [
-                        {
-                            label: 'Oluşturulan Etkinlikler',
-                            backgroundColor: colors.primary,
-                            borderColor: colors.primary,
-                            data: [5, 8, 12, 15, 10, 18, 20, 15, 8, 12, 10, 7],
-                        },
-                        {
-                            label: 'Katılımcı Sayısı',
-                            backgroundColor: colors.success,
-                            borderColor: colors.success,
-                            data: [50, 65, 85, 120, 90, 145, 160, 140, 70, 95, 85, 60],
-                        }
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: {
-                                color: colors.gridLines
-                            },
-                            ticks: {
-                                color: colors.chartText
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: colors.gridLines
-                            },
-                            ticks: {
-                                color: colors.chartText
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: colors.chartText
-                            }
-                        }
-                    }
-                }
-            });
-        };
-
-        // Pasta Grafiği
-        const initPieChart = () => {
-            const ctx = document.getElementById('statusPieChart');
-            const colors = getThemeColor();
-            
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Onaylanmış', 'Onay Bekleyen', 'Reddedilmiş', 'İptal Edilmiş'],
-                    datasets: [{
-                        data: [65, 15, 10, 10],
-                        backgroundColor: [colors.success, colors.warning, colors.danger, colors.info],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: colors.chartText
-                            }
-                        }
-                    }
-                }
-            });
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // DataTable
-            $('#pendingEventsTable').DataTable({
+        $(document).ready(function() {
+            // DataTables için Türkçe dil desteği
+            $('#activeEventsTable, #pendingEventsTable, #upcomingEventsTable').DataTable({
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
-                },
-                pageLength: 5,
-                lengthMenu: [5, 10, 25, 50],
-                dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
-            });
-            
-            // Grafikleri başlat
-            initBarChart();
-            initPieChart();
-            
-            // Tema değiştiğinde grafikleri güncelle
-            document.getElementById('darkModeToggle')?.addEventListener('click', () => {
-                setTimeout(() => {
-                    initBarChart();
-                    initPieChart();
-                }, 100);
+                }
             });
         });
     </script>

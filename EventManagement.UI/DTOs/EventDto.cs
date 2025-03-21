@@ -1,15 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using EventManagement.Domain.Entities;
 
-namespace EventManagement.UI.Models.DTOs
+namespace EventManagement.UI.DTOs
 {
-    public enum EventStatus
-    {
-        Pending = 0,
-        Approved = 1,
-        Rejected = 2,
-        Cancelled = 3
-    }
-
     public class EventDto
     {
         public Guid Id { get; set; }
@@ -56,8 +49,18 @@ namespace EventManagement.UI.Models.DTOs
         [Range(1, int.MaxValue, ErrorMessage = "Kapasite en az {1} olmalıdır")]
         public int? Capacity { get; set; }
 
+        [Display(Name = "Maksimum Katılımcı")]
+        [Range(1, int.MaxValue, ErrorMessage = "Maksimum katılımcı sayısı en az {1} olmalıdır")]
+        public int? MaxAttendees { get; set; }
+
+        [Display(Name = "Halka Açık")]
+        public bool IsPublic { get; set; } = true;
+
         [Display(Name = "Aktif")]
         public bool IsActive { get; set; } = true;
+
+        [Required]
+        public Guid CreatorId { get; set; }
     }
 
     public class UpdateEventDto
@@ -91,27 +94,18 @@ namespace EventManagement.UI.Models.DTOs
 
         [Display(Name = "Aktif")]
         public bool IsActive { get; set; }
-        
+
         [Display(Name = "Maksimum Katılımcı")]
         public int? MaxAttendees { get; set; }
-        
+
         [Display(Name = "Halka Açık")]
         public bool IsPublic { get; set; }
-        
+
         [Display(Name = "İptal Edildi")]
         public bool IsCancelled { get; set; }
-        
+
         [Display(Name = "Durum")]
         public EventStatus Status { get; set; }
-    }
-
-    public class EventStatisticsDto
-    {
-        public int TotalRegistrations { get; set; }
-        public int ConfirmedRegistrations { get; set; }
-        public int CancelledRegistrations { get; set; }
-        public int WaitingListRegistrations { get; set; }
-        public decimal OccupancyRate { get; set; }
     }
 
     public class EventFiltersDto
@@ -128,4 +122,4 @@ namespace EventManagement.UI.Models.DTOs
         public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
     }
-} 
+}

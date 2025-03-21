@@ -1,3 +1,11 @@
 ﻿@{
-    Layout = "_Layout";
+    // Admin ve EventManager rolleri için _AdminLayout kullan
+    if (User.IsInRole("Admin") || User.IsInRole("EventManager"))
+    {
+        Layout = "_AdminLayout";
+    }
+    else
+    {
+        Layout = "_Layout";
+    }
 }

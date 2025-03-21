@@ -1,68 +1,87 @@
-﻿@model List<EventManagement.UI.Models.DTOs.EventDto>
+@model List<EventManagement.UI.DTOs.EventDto>
 @{
     ViewData["Title"] = "Ana Sayfa";
 }
 
-<div class="container">
-    <div class="row mb-4">
-        <div class="col">
-            <div class="jumbotron">
-                <h1 class="display-4">Etkinlik Yönetim Sistemi</h1>
-                <p class="lead">
-                    Bu platform, organizasyonların (tenant) etkinliklerini yönetmelerine, katılımcıların etkinliklere kayıt olmalarına ve katılım durumunu takip etmelerine olanak tanır.
-                </p>
-                <hr class="my-4">
-                <p>Hemen aşağıdaki yaklaşan etkinliklere göz atın veya tüm etkinlikleri görüntüleyin.</p>
-                <a class="btn btn-primary btn-lg" href="@Url.Action("Index", "Event")" role="button">Tüm Etkinlikler</a>
+<div class="text-center my-5">
+    <h1 class="display-4">Etkinlik Yönetimi Sistemine Hoş Geldiniz</h1>
+    <p class="lead">Etkinliklerinizi kolayca yönetebilir, katılımcıları takip edebilir ve raporlar oluşturabilirsiniz.</p>
+</div>
+
+<div class="container mt-5">
+    <h2 class="mb-4">Yaklaşan Etkinlikler</h2>
+    
+    @if (Model.Count > 0)
+    {
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var item in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            @item.Title
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@item.Location</h5>
+                            <p class="card-text">@(item.Description?.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-2"></i>@item.StartDate.ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            </p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-users me-2"></i>Kapasite: @item.Capacity
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success">Aktif</span>
+                            <a asp-controller="Event" asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-primary">
+                                <i class="fas fa-info-circle me-1"></i> Detaylar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Şu anda yaklaşan etkinlik bulunmamaktadır.
+        </div>
+    }
+    
+    <div class="text-center mt-5">
+        <a asp-controller="Event" asp-action="Index" class="btn btn-lg btn-outline-primary">
+            <i class="fas fa-calendar-alt me-2"></i> Tüm Etkinlikleri Gör
+        </a>
+    </div>
+</div>
+
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm text-center p-4">
+                <i class="fas fa-calendar-check fa-3x mb-3 text-primary"></i>
+                <h3>Etkinlik Yönetimi</h3>
+                <p>Etkinliklerinizi kolayca oluşturun, düzenleyin ve takip edin.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm text-center p-4">
+                <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                <h3>Katılımcı Takibi</h3>
+                <p>Etkinlik katılımcılarını yönetin ve katılım durumlarını takip edin.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm text-center p-4">
+                <i class="fas fa-chart-bar fa-3x mb-3 text-primary"></i>
+                <h3>Raporlama</h3>
+                <p>Etkinlik istatistiklerini görüntüleyin ve detaylı raporlar oluşturun.</p>
             </div>
         </div>
     </div>
-
-    <div class="row">
-        <div class="col">
-            <h2>Yaklaşan Etkinlikler</h2>
-            <hr />
-            
-            @if (Model != null && Model.Count > 0)
-            {
-                <div class="row">
-                    @foreach (var eventItem in Model)
-                    {
-                        <div class="col-md-4 mb-4">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">@eventItem.Title</h5>
-                                    <h6 class="card-subtitle mb-2 text-muted">@eventItem.StartDate.ToString("dd.MM.yyyy HH:mm")</h6>
-                                    <p class="card-text">@(eventItem.Description?.Length > 100 ? eventItem.Description.Substring(0, 100) + "..." : eventItem.Description)</p>
-                                    <p class="card-text">
-                                        <small class="text-muted">
-                                            <i class="bi bi-geo-alt"></i> @eventItem.Location
-                                        </small>
-                                    </p>
-                                    @if (eventItem.Capacity.HasValue)
-                                    {
-                                        <p class="card-text">
-                                            <small class="text-muted">
-                                                <i class="bi bi-people"></i> @eventItem.RegistrationCount / @eventItem.Capacity
-                                            </small>
-                                        </p>
-                                    }
-                                    <div class="d-flex justify-content-between align-items-center mt-3">
-                                        <a href="@Url.Action("Details", "Event", new { id = eventItem.Id })" class="btn btn-sm btn-outline-primary">Detaylar</a>
-                                        <a href="@Url.Action("Register", "Event", new { id = eventItem.Id })" class="btn btn-sm btn-success">Kayıt Ol</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="alert alert-info">
-                    Şu anda yaklaşan etkinlik bulunmamaktadır.
-                </div>
-            }
-        </div>
-    </div>
-</div>
+</div> 

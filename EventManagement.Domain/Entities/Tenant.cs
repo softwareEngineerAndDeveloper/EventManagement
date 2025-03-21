@@ -26,5 +26,8 @@ namespace EventManagement.Domain.Entities
         // Navigasyon özellikleri
         public virtual ICollection<User> Users { get; set; } = new List<User>();
         public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+        
+        // Katılımcılar
+        public virtual ICollection<Attendee> Attendees { get; set; } = new List<Attendee>();
     }
 } 

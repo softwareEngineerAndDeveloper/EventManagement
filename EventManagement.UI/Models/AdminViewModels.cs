@@ -1,4 +1,4 @@
-using EventManagement.UI.Models.DTOs;
+using EventManagement.UI.DTOs;
 
 namespace EventManagement.UI.Models
 {
@@ -25,6 +25,8 @@ namespace EventManagement.UI.Models
     {
         public Guid UserId { get; set; }
         public Guid RoleId { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+        public string RoleDescription { get; set; } = string.Empty;
     }
     
     public class UpdateUserDto

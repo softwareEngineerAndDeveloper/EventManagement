@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EventManagement.UI.Models.DTOs
+namespace EventManagement.UI.DTOs
 {
     public class RegistrationDto
     {
@@ -35,7 +35,7 @@ namespace EventManagement.UI.Models.DTOs
     public class UpdateRegistrationDto
     {
         public Guid Id { get; set; }
-        
+
         [Required(ErrorMessage = "Katılımcı adı gereklidir")]
         [Display(Name = "Adınız Soyadınız")]
         public string ParticipantName { get; set; } = string.Empty;
@@ -52,4 +52,4 @@ namespace EventManagement.UI.Models.DTOs
         [Display(Name = "Durum")]
         public int Status { get; set; }
     }
-} 
+}

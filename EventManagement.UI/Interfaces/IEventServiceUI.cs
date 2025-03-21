@@ -1,8 +1,8 @@
-using EventManagement.UI.Models.DTOs;
+using EventManagement.UI.DTOs;
 
-namespace EventManagement.UI.Services
+namespace EventManagement.UI.Interfaces
 {
-    public interface IEventService
+    public interface IEventServiceUI
     {
         Task<List<EventDto>> GetAllEventsAsync(Guid tenantId);
         Task<EventDto?> GetEventByIdAsync(Guid id, Guid tenantId);

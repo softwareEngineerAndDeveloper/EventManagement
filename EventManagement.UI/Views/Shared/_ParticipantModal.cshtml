@@ -1,0 +1,449 @@
+@using EventManagement.UI.DTOs
+
+<!-- Katılımcılar Modal -->
+<div class="modal fade" id="participantsModal" tabindex="-1" aria-labelledby="participantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participantsModalLabel" data-event-id="">Etkinlik Katılımcıları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center" id="participantsLoading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+                <div id="participantsList" class="d-none">
+                    <div class="mb-3">
+                        <span class="badge bg-primary me-2">Toplam: <span id="totalParticipants">0</span></span>
+                        <span class="badge bg-success me-2">Onaylı: <span id="confirmedParticipants">0</span></span>
+                        <span class="badge bg-warning text-dark me-2">Bekleme Listesi: <span id="waitingParticipants">0</span></span>
+                        <span class="badge bg-danger">İptal: <span id="cancelledParticipants">0</span></span>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Telefon</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noParticipants" class="alert alert-info d-none">
+                    Bu etkinliğe henüz katılımcı eklenmemiştir.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="addParticipantBtn">Katılımcı Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Katılımcı Ekleme Modal -->
+<div class="modal fade" id="addParticipantModal" tabindex="-1" aria-labelledby="addParticipantModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addParticipantModalLabel">Yeni Katılımcı Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addParticipantForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="EventId" name="EventId" />
+                    <input type="hidden" id="Id" name="Id" value="@Guid.Empty" />
+                    
+                    <div class="form-group mb-3">
+                        <label for="Name" class="form-label">Ad Soyad</label>
+                        <input type="text" class="form-control" id="Name" name="Name" required>
+                        <span class="text-danger" id="nameError"></span>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="Email" class="form-label">E-posta</label>
+                        <input type="email" class="form-control" id="Email" name="Email" required>
+                        <span class="text-danger" id="emailError"></span>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="Phone" class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" id="Phone" name="Phone">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="Status" class="form-label">Durum</label>
+                        <select class="form-control" id="Status" name="Status">
+                            <option value="0">Beklemede</option>
+                            <option value="1">Onaylı</option>
+                            <option value="2">İptal Edildi</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="HasAttended" name="HasAttended">
+                            <label class="form-check-label" for="HasAttended">Etkinliğe Katıldı</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="IsCancelled" name="IsCancelled">
+                            <label class="form-check-label" for="IsCancelled">Katılımcı İptal Edildi</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="Notes">Notlar</label>
+                        <textarea class="form-control" id="Notes" name="Notes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="formErrors">
+                        Lütfen formdaki hataları düzeltin.
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // Katılımcılar modalı açılınca
+            $('#participantsModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var eventId = button.data('event-id');
+                var eventTitle = button.data('event-title');
+                var modal = $(this);
+                
+                modal.find('.modal-title').text(eventTitle + ' - Katılımcılar');
+                modal.find('.modal-title').data('event-id', eventId);
+                
+                // API'den katılımcıları getir
+                loadParticipants(eventId);
+            });
+            
+            // Katılımcı Ekle butonuna tıklayınca
+            $('#addParticipantBtn').click(function() {
+                var eventId = $('#participantsModal').find('.modal-title').data('event-id');
+                
+                // Form alanlarını temizle
+                $('#addParticipantForm')[0].reset();
+                
+                // EventId'yi ayarla
+                $('#EventId').val(eventId);
+                $('#Id').val('@Guid.Empty');
+                
+                // Hata mesajlarını temizle
+                clearFormErrors();
+                
+                // Katılımcı ekleme modal'ını göster
+                $('#participantsModal').modal('hide');
+                $('#addParticipantModal').modal('show');
+            });
+            
+            // E-posta adresi otomatik tamamlama
+            $("#Email").on("blur", function() {
+                var email = $(this).val();
+                if (email && $("#Id").val() === '@Guid.Empty') { // Sadece yeni kayıtlarda kontrol et
+                    $.ajax({
+                        url: '@Url.Action("SearchParticipantByEmail", "Event")',
+                        type: 'GET',
+                        data: { email: email },
+                        success: function (response) {
+                            if (response.success && response.data) {
+                                $("#Name").val(response.data.name);
+                                $("#Phone").val(response.data.phone);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Katılımcı Ekleme formu gönderimi
+            $("#addParticipantForm").submit(function(e) {
+                e.preventDefault();
+                
+                clearFormErrors();
+                
+                // Form verilerini topla
+                var formData = {
+                    Id: $("#Id").val(),
+                    EventId: $("#EventId").val(),
+                    Name: $("#Name").val(),
+                    Email: $("#Email").val(),
+                    Phone: $("#Phone").val(),
+                    Status: parseInt($("#Status").val()),
+                    HasAttended: $("#HasAttended").is(":checked"),
+                    Notes: $("#Notes").val(),
+                    IsCancelled: $("#IsCancelled").is(":checked")
+                };
+                
+                // Form doğrulama
+                var isValid = validateParticipantForm(formData);
+                
+                if (!isValid) {
+                    return false;
+                }
+                
+                // Anti-forgery token ekle
+                var token = $('input[name="__RequestVerificationToken"]').val();
+                
+                // Kaydetme işlemi
+                var url = formData.Id !== '@Guid.Empty' 
+                    ? '@Url.Action("EditParticipant", "Event")' 
+                    : '@Url.Action("AddParticipant", "Event")';
+                
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    beforeSend: function() {
+                        // Gönderme butonunu devre dışı bırak
+                        $("#addParticipantForm button[type='submit']").prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Kaydediliyor...');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Başarılı mesajı göster ve modalı kapat
+                            toastr.success(response.message || "Katılımcı başarıyla kaydedildi.");
+                            $("#addParticipantModal").modal('hide');
+                            
+                            // Katılımcılar listesini yenile
+                            var eventId = $("#EventId").val();
+                            setTimeout(function() {
+                                $('#participantsModal').modal('show');
+                                loadParticipants(eventId);
+                            }, 500);
+                        } else {
+                            // Hata mesajı göster
+                            toastr.error(response.message || "İşlem sırasında bir hata oluştu.");
+                            $("#formErrors").removeClass("d-none").text(response.message || "İşlem sırasında bir hata oluştu.");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Hata durumunda mesaj göster
+                        console.error("AJAX Error:", xhr, status, error);
+                        toastr.error("İşlem sırasında bir hata oluştu.");
+                        $("#formErrors").removeClass("d-none").text("Sunucu hatası: Lütfen daha sonra tekrar deneyiniz.");
+                    },
+                    complete: function() {
+                        // Gönderme butonunu etkinleştir
+                        $("#addParticipantForm button[type='submit']").prop('disabled', false).text('Kaydet');
+                    }
+                });
+            });
+            
+            // Form alanlarını doğrulama
+            function validateParticipantForm(data) {
+                var isValid = true;
+                
+                if (!data.Name || data.Name.trim() === '') {
+                    $("#nameError").text("Ad Soyad alanı zorunludur.");
+                    isValid = false;
+                }
+                
+                if (!data.Email || data.Email.trim() === '') {
+                    $("#emailError").text("E-posta alanı zorunludur.");
+                    isValid = false;
+                } else if (!validateEmail(data.Email)) {
+                    $("#emailError").text("Geçerli bir e-posta adresi giriniz.");
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    $("#formErrors").removeClass("d-none").text("Lütfen formdaki hataları düzeltin.");
+                }
+                
+                return isValid;
+            }
+            
+            // Form hatalarını temizle
+            function clearFormErrors() {
+                $("#nameError, #emailError").text("");
+                $("#formErrors").addClass("d-none");
+            }
+            
+            // Email validasyon fonksiyonu
+            function validateEmail(email) {
+                var re = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                return re.test(email);
+            }
+            
+            // Katılımcı silme
+            $(document).on('click', '.removeParticipant', function() {
+                var participantId = $(this).data('id');
+                
+                if (confirm('Bu katılımcıyı silmek istediğinizden emin misiniz?')) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteParticipant", "Event")',
+                        type: 'POST',
+                        data: { id: participantId },
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                toastr.success('Katılımcı başarıyla silindi.');
+                                
+                                // Katılımcılar listesini yeniden yükle
+                                var eventId = $('#participantsModal').find('.modal-title').data('event-id');
+                                loadParticipants(eventId);
+                                
+                                // İstatistikleri güncelle
+                                if (response.statistics) {
+                                    updateStatistics(response.statistics);
+                                }
+                            } else {
+                                toastr.error(response.message || 'Katılımcı silinirken bir hata oluştu.');
+                            }
+                        },
+                        error: function() {
+                            toastr.error('Sunucu hatası: Katılımcı silinirken bir sorun oluştu.');
+                        }
+                    });
+                }
+            });
+            
+            // Katılımcı düzenleme
+            $(document).on('click', '.editParticipant', function() {
+                var participantId = $(this).data('id');
+                
+                // Katılımcı bilgilerini getir
+                $.ajax({
+                    url: '@Url.Action("EditParticipant", "Event")',
+                    type: 'GET',
+                    data: { id: participantId },
+                    success: function(response) {
+                        if (response) {
+                            // Form bilgilerini doldur
+                            $("#Id").val(response.id);
+                            $("#EventId").val(response.eventId);
+                            $("#Name").val(response.name);
+                            $("#Email").val(response.email);
+                            $("#Phone").val(response.phone);
+                            $("#Status").val(response.status);
+                            $("#HasAttended").prop('checked', response.hasAttended);
+                            $("#IsCancelled").prop('checked', response.isCancelled);
+                            $("#Notes").val(response.notes);
+                            
+                            // Hataları temizle
+                            clearFormErrors();
+                            
+                            // Modalı göster
+                            $('#participantsModal').modal('hide');
+                            $('#addParticipantModal').modal('show');
+                            
+                            // Başlığı güncelle
+                            $('#addParticipantModalLabel').text('Katılımcı Düzenle');
+                        } else {
+                            toastr.error('Katılımcı bilgileri alınamadı.');
+                        }
+                    },
+                    error: function() {
+                        toastr.error('Sunucu hatası: Katılımcı bilgileri alınamadı.');
+                    }
+                });
+            });
+        });
+        
+        // Katılımcıları yükleme fonksiyonu
+        function loadParticipants(eventId) {
+            $('#participantsLoading').removeClass('d-none');
+            $('#participantsList').addClass('d-none');
+            $('#noParticipants').addClass('d-none');
+            
+            $.ajax({
+                url: '@Url.Action("GetEventParticipants", "Event")',
+                type: 'GET',
+                data: { id: eventId },
+                success: function(response) {
+                    $('#participantsLoading').addClass('d-none');
+                    
+                    if (response.success && response.data && response.data.length > 0) {
+                        var tableBody = $('#participantsTableBody');
+                        tableBody.empty();
+                        
+                        // İstatistikleri sıfırla
+                        var totalCount = response.data.length;
+                        var confirmedCount = 0;
+                        var waitingCount = 0;
+                        var cancelledCount = 0;
+                        
+                        response.data.forEach(function(participant) {
+                            var statusBadge;
+                            // Status: 0: Beklemede, 1: Onaylı, 2: İptal Edildi
+                            switch (participant.status) {
+                                case 1:
+                                    statusBadge = '<span class="badge bg-success">Onaylı</span>';
+                                    confirmedCount++;
+                                    break;
+                                case 2:
+                                    statusBadge = '<span class="badge bg-danger">İptal Edildi</span>';
+                                    cancelledCount++;
+                                    break;
+                                case 0:
+                                default:
+                                    statusBadge = '<span class="badge bg-warning text-dark">Beklemede</span>';
+                                    waitingCount++;
+                                    break;
+                            }
+                            
+                            var row = '<tr>' +
+                                '<td>' + participant.name + '</td>' +
+                                '<td>' + participant.email + '</td>' +
+                                '<td>' + (participant.phone || '-') + '</td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td>' +
+                                '<button class="btn btn-sm btn-info editParticipant me-1" data-id="' + participant.id + '">Düzenle</button>' +
+                                '<button class="btn btn-sm btn-danger removeParticipant" data-id="' + participant.id + '">Sil</button>' +
+                                '</td>' +
+                                '</tr>';
+                            tableBody.append(row);
+                        });
+                        
+                        // İstatistikleri güncelle
+                        $('#totalParticipants').text(totalCount);
+                        $('#confirmedParticipants').text(confirmedCount);
+                        $('#waitingParticipants').text(waitingCount);
+                        $('#cancelledParticipants').text(cancelledCount);
+                        
+                        $('#participantsList').removeClass('d-none');
+                    } else {
+                        $('#noParticipants').removeClass('d-none');
+                    }
+                },
+                error: function() {
+                    $('#participantsLoading').addClass('d-none');
+                    $('#noParticipants').removeClass('d-none').text('Katılımcılar yüklenirken bir hata oluştu.');
+                }
+            });
+        }
+        
+        // İstatistikleri güncelleme
+        function updateStatistics(stats) {
+            if (stats) {
+                $('#totalParticipants').text(stats.totalAttendees || 0);
+                $('#confirmedParticipants').text(stats.confirmedAttendees || 0);
+                $('#waitingParticipants').text(stats.waitingListAttendees || 0);
+                $('#cancelledParticipants').text(stats.cancelledAttendees || 0);
+            }
+        }
+    </script>
+}

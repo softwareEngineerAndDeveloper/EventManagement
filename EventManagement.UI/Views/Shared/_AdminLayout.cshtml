@@ -17,10 +17,7 @@
             <i class="bi bi-calendar-check me-2"></i>
             Etkinlik Yönetimi
         </a>
-        <!-- Sidebar Toggle-->
-        <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!">
-            <i class="bi bi-list"></i>
-        </button>
+        <!-- Sidebar Toggle butonu kaldırıldı -->
         
         <!-- Search Bar -->
         <div class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
@@ -85,10 +82,20 @@
                 <div class="sb-sidenav-menu">
                     <div class="nav">
                         <div class="sb-sidenav-menu-heading">Genel</div>
-                        <a class="nav-link" asp-controller="Admin" asp-action="Index">
-                            <div class="sb-nav-link-icon"><i class="bi bi-speedometer2"></i></div>
-                            Dashboard
-                        </a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a class="nav-link" asp-controller="Admin" asp-action="Index">
+                                <div class="sb-nav-link-icon"><i class="bi bi-speedometer2"></i></div>
+                                Dashboard
+                            </a>
+                        }
+                        else if (User.IsInRole("EventManager"))
+                        {
+                            <a class="nav-link" asp-controller="Event" asp-action="Manager">
+                                <div class="sb-nav-link-icon"><i class="bi bi-speedometer2"></i></div>
+                                Dashboard
+                            </a>
+                        }
                         <div class="sb-sidenav-menu-heading">Etkinlikler</div>
                         <a class="nav-link" asp-controller="Admin" asp-action="Events">
                             <div class="sb-nav-link-icon"><i class="bi bi-calendar-event"></i></div>
@@ -98,15 +105,18 @@
                             <div class="sb-nav-link-icon"><i class="bi bi-plus-circle"></i></div>
                             Yeni Etkinlik
                         </a>
-                        <div class="sb-sidenav-menu-heading">Kullanıcılar</div>
-                        <a class="nav-link" asp-controller="Admin" asp-action="Users">
-                            <div class="sb-nav-link-icon"><i class="bi bi-people"></i></div>
-                            Kullanıcı Yönetimi
-                        </a>
-                        <a class="nav-link" asp-controller="Admin" asp-action="Roles">
-                            <div class="sb-nav-link-icon"><i class="bi bi-person-badge"></i></div>
-                            Rol Yönetimi
-                        </a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <div class="sb-sidenav-menu-heading">Kullanıcılar</div>
+                            <a class="nav-link" asp-controller="Admin" asp-action="Users">
+                                <div class="sb-nav-link-icon"><i class="bi bi-people"></i></div>
+                                Kullanıcı Yönetimi
+                            </a>
+                            <a class="nav-link" asp-controller="Admin" asp-action="Roles">
+                                <div class="sb-nav-link-icon"><i class="bi bi-person-badge"></i></div>
+                                Rol Yönetimi
+                            </a>
+                        }
                         <div class="sb-sidenav-menu-heading">Raporlar</div>
                         <a class="nav-link" href="#">
                             <div class="sb-nav-link-icon"><i class="bi bi-bar-chart"></i></div>
@@ -164,16 +174,9 @@
     <script src="https://cdn.datatables.net/v/bs5/dt-1.13.4/datatables.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script>
-        // Sidebar toggle
+        // Sidebar toggle - yorum satırına alındı çünkü sidebar'ın kapanmaması isteniyor
         window.addEventListener('DOMContentLoaded', event => {
-            const sidebarToggle = document.body.querySelector('#sidebarToggle');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', event => {
-                    event.preventDefault();
-                    document.body.classList.toggle('sb-sidenav-toggled');
-                    localStorage.setItem('sb|sidebar-toggle', document.body.classList.contains('sb-sidenav-toggled'));
-                });
-            }
+            // Sidebar toggle listener'ı kaldırıldı
             
             // Dark mode toggle
             const darkModeToggle = document.getElementById('darkModeToggle');

@@ -1,9 +1,9 @@
+using EventManagement.UI.DTOs;
 using EventManagement.UI.Models;
-using EventManagement.UI.Models.DTOs;
 
-namespace EventManagement.UI.Services
+namespace EventManagement.UI.Interfaces
 {
-    public interface IUserService
+    public interface IUserServiceUI
     {
         Task<List<UserViewModel>> GetAllUsersAsync(Guid tenantId);
         Task<UserViewModel?> GetUserByIdAsync(Guid id, Guid tenantId);
@@ -12,5 +12,7 @@ namespace EventManagement.UI.Services
         Task<UserViewModel> UpdateUserAsync(Guid id, UpdateUserDto updateUserDto, Guid tenantId);
         Task<bool> DeleteUserAsync(Guid id, Guid tenantId);
         Task<bool> AssignRoleToUserAsync(AssignRoleDto assignRoleDto, Guid tenantId);
+        Task<bool> ActivateUserAsync(Guid id, Guid tenantId);
+        Task<bool> DeactivateUserAsync(Guid id, Guid tenantId);
     }
 } 

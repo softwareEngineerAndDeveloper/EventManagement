@@ -1,4 +1,4 @@
-namespace EventManagement.UI.Models.DTOs
+namespace EventManagement.UI.DTOs
 {
     public class EventFilterDto
     {
@@ -8,4 +8,4 @@ namespace EventManagement.UI.Models.DTOs
         public bool? IsActive { get; set; }
         public string? Status { get; set; }
     }
-} 
+}

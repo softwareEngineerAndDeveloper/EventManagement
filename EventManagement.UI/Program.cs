@@ -1,5 +1,8 @@
 using EventManagement.UI.Services;
+using EventManagement.UI.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using EventManagement.UI.Models;
+using EventManagement.UI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,8 +11,11 @@ builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSet
 builder.Services.Configure<TenantSettings>(builder.Configuration.GetSection("Tenant"));
 
 // HttpClient yapılandırması
-builder.Services.AddHttpClient<IApiService, ApiService>();
+builder.Services.AddHttpClient<IApiServiceUI, ApiServiceUI>();
 builder.Services.AddHttpContextAccessor();
+
+// Caching
+builder.Services.AddMemoryCache();
 
 // Session yapılandırması
 builder.Services.AddDistributedMemoryCache();
@@ -41,12 +47,14 @@ builder.Services.AddAuthorization(options =>
 });
 
 // API servisini DI container'a ekle
-builder.Services.AddScoped<IApiService, ApiService>();
+builder.Services.AddScoped<IApiServiceUI, ApiServiceUI>();
+builder.Services.AddScoped<ITenantResolverService, TenantResolverService>();
 
 // Admin Controller için gerekli servisleri ekle
-builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IEventServiceUI, EventServiceUI>();
+builder.Services.AddScoped<IUserServiceUI, UserServiceUI>();
+builder.Services.AddScoped<IRoleServiceUI, RoleServiceUI>();
+builder.Services.AddScoped<IAttendeeServiceUI, AttendeeServiceUI>();
 
 var app = builder.Build();
 
@@ -66,12 +74,55 @@ app.UseRouting();
 // Session middleware'ini ekle
 app.UseSession();
 
+// Tenant middleware'ini ekle
+app.UseTenantMiddleware();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+// AuthenticationMiddleware'den sonra HomeController için default route ekleyelim
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.Value == "/" || context.Request.Path.Value == "/Home/Index")
+    {
+        // Kullanıcı giriş yapmışsa ve Admin veya EventManager ise Admin dashboard'a yönlendir
+        if (context.User.Identity?.IsAuthenticated == true && 
+            (context.User.IsInRole("Admin") || context.User.IsInRole("EventManager")))
+        {
+            context.Response.Redirect("/Admin/Index");
+            return;
+        }
+    }
+    
+    await next();
+});
+
+// Hata middleware'i
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        // Hata oluştuğunda kullanıcıya daha iyi bir mesaj göster
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "İstek işlenirken bir hata oluştu: {Path}", context.Request.Path);
+        
+        context.Response.Redirect("/Home/Error");
+    }
+});
+
+// URL path tabanlı tenant route yapılandırması
+app.MapControllerRoute(
+    name: "tenant",
+    pattern: "{tenant}/{controller=Home}/{action=Index}/{id?}");
+
+// Default route
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 

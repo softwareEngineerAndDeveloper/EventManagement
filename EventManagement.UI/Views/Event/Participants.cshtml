@@ -1,0 +1,294 @@
+@model EventManagement.UI.Models.ViewModels.ParticipantViewModel
+@{
+    ViewData["Title"] = "Etkinlik Katılımcıları";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">@Model.EventTitle - Katılımcı Listesi</h5>
+                    <button type="button" class="btn btn-light btn-sm" id="btnAddParticipant">
+                        <i class="fas fa-plus"></i> Katılımcı Ekle
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Toplam Katılımcı</h6>
+                                            <h2 class="mb-0">@Model.Statistics.TotalAttendees</h2>
+                                        </div>
+                                        <i class="fas fa-users fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Onaylı Katılımcı</h6>
+                                            <h2 class="mb-0">@Model.Statistics.ConfirmedAttendees</h2>
+                                        </div>
+                                        <i class="fas fa-user-check fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Bekleme Listesi</h6>
+                                            <h2 class="mb-0">@Model.Statistics.WaitingListAttendees</h2>
+                                        </div>
+                                        <i class="fas fa-user-clock fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">İptal Edilen</h6>
+                                            <h2 class="mb-0">@Model.Statistics.CancelledAttendees</h2>
+                                        </div>
+                                        <i class="fas fa-user-times fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <input type="text" id="participantSearch" class="form-control" placeholder="Katılımcı Ara...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select id="statusFilter" class="form-control">
+                                    <option value="">Tüm Durumlar</option>
+                                    <option value="1">Onaylı</option>
+                                    <option value="0">Beklemede</option>
+                                    <option value="2">İptal Edildi</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="participantsTable">
+                            <thead>
+                                <tr>
+                                    <th>Ad Soyad</th>
+                                    <th>E-posta</th>
+                                    <th>Telefon</th>
+                                    <th>Durum</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>Katıldı</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var attendee in Model.Attendees)
+                                {
+                                    <tr data-id="@attendee.Id" class="@(attendee.IsCancelled ? "table-danger" : "")">
+                                        <td>@attendee.Name</td>
+                                        <td>@attendee.Email</td>
+                                        <td>@attendee.Phone</td>
+                                        <td>
+                                            @switch (attendee.Status)
+                                            {
+                                                case 0:
+                                                    <span class="badge bg-warning">Beklemede</span>
+                                                    break;
+                                                case 1:
+                                                    <span class="badge bg-success">Onaylı</span>
+                                                    break;
+                                                case 2:
+                                                    <span class="badge bg-danger">İptal Edildi</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>@attendee.RegistrationDate.ToShortDateString()</td>
+                                        <td>
+                                            @if (attendee.HasAttended)
+                                            {
+                                                <span class="badge bg-success">Evet</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Hayır</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-primary btn-edit" data-id="@attendee.Id">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger btn-delete" data-id="@attendee.Id">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="@Url.Action("Details", new { id = Model.EventId })" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Etkinliğe Dön
+                            </a>
+                        </div>
+                        <div>
+                            <span class="mr-2">Doluluk Oranı: <strong>%@Math.Round(Model.Statistics.FillRate, 1)</strong></span>
+                            <div class="progress" style="width: 200px; height: 20px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Statistics.FillRate%;"
+                                     aria-valuenow="@Model.Statistics.FillRate" aria-valuemin="0" aria-valuemax="100">
+                                     @Math.Round(Model.Statistics.FillRate, 1)%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="participantModal" tabindex="-1" role="dialog" aria-labelledby="participantModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participantModalLabel">Katılımcı Ekle</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="participantModalContent">
+                <!-- Modal içeriği ajax ile yüklenecek -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Katılımcı ekle butonuna tıklandığında
+            $("#btnAddParticipant").click(function () {
+                $.ajax({
+                    url: '@Url.Action("AddParticipant", "Event", new { eventId = Model.EventId })',
+                    type: 'GET',
+                    success: function (data) {
+                        $("#participantModalContent").html(data);
+                        $("#participantModalLabel").text("Katılımcı Ekle");
+                        $("#participantModal").modal('show');
+                    },
+                    error: function () {
+                        toastr.error("İşlem sırasında bir hata oluştu.");
+                    }
+                });
+            });
+            
+            // Katılımcı düzenle butonuna tıklandığında
+            $(document).on('click', '.btn-edit', function () {
+                var id = $(this).data('id');
+                $.ajax({
+                    url: '@Url.Action("EditParticipant", "Event")/' + id,
+                    type: 'GET',
+                    success: function (data) {
+                        $("#participantModalContent").html(data);
+                        $("#participantModalLabel").text("Katılımcı Düzenle");
+                        $("#participantModal").modal('show');
+                    },
+                    error: function () {
+                        toastr.error("İşlem sırasında bir hata oluştu.");
+                    }
+                });
+            });
+            
+            // Katılımcı sil butonuna tıklandığında
+            $(document).on('click', '.btn-delete', function () {
+                var id = $(this).data('id');
+                if (confirm("Bu katılımcıyı silmek istediğinize emin misiniz?")) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteParticipant", "Event")',
+                        type: 'POST',
+                        data: { id: id },
+                        success: function (response) {
+                            if (response.success) {
+                                toastr.success(response.message);
+                                // Tablodan satırı kaldır
+                                $("tr[data-id='" + id + "']").remove();
+                                // İstatistikleri güncelle
+                                updateStatistics(response.statistics);
+                            } else {
+                                toastr.error(response.message);
+                            }
+                        },
+                        error: function () {
+                            toastr.error("İşlem sırasında bir hata oluştu.");
+                        }
+                    });
+                }
+            });
+            
+            // Arama fonksiyonu
+            $("#participantSearch").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $("#participantsTable tbody tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+            
+            // Durum filtresi
+            $("#statusFilter").on("change", function() {
+                var value = $(this).val();
+                if (value === "") {
+                    $("#participantsTable tbody tr").show();
+                } else {
+                    $("#participantsTable tbody tr").hide();
+                    $("#participantsTable tbody tr").each(function() {
+                        var status = $(this).find("td:nth-child(4) .badge").text();
+                        if ((value === "1" && status === "Onaylı") || 
+                            (value === "0" && status === "Beklemede") || 
+                            (value === "2" && status === "İptal Edildi")) {
+                            $(this).show();
+                        }
+                    });
+                }
+            });
+            
+            // İstatistikleri güncelleme fonksiyonu
+            function updateStatistics(stats) {
+                // İstatistik kutularını güncelle
+                $(".card-body h2").eq(0).text(stats.totalAttendees);
+                $(".card-body h2").eq(1).text(stats.confirmedAttendees);
+                $(".card-body h2").eq(2).text(stats.waitingListAttendees);
+                $(".card-body h2").eq(3).text(stats.cancelledAttendees);
+                
+                // İlerleme çubuğunu güncelle
+                var fillRate = Math.round(stats.fillRate * 10) / 10;
+                $(".progress-bar").css("width", fillRate + "%").text(fillRate + "%");
+                $(".progress-bar").attr("aria-valuenow", fillRate);
+                $("span strong").text("%" + fillRate);
+            }
+        });
+    </script>
+} 

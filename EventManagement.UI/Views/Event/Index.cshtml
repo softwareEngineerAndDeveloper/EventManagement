@@ -1,0 +1,221 @@
+@model List<EventManagement.UI.DTOs.EventDto>
+@{
+    ViewData["Title"] = "Etkinlikler";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">@ViewData["Title"]</h1>
+    
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    @if (User.IsInRole("Admin") || User.IsInRole("EventManager"))
+    {
+        <div class="mb-4">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Yeni Etkinlik Oluştur
+            </a>
+        </div>
+    }
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar me-1"></i>
+                    Tüm Etkinlikler
+                </div>
+                <div class="card-body">
+                    @if (Model.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="eventsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Ad</th>
+                                        <th>Açıklama</th>
+                                        <th>Tarih</th>
+                                        <th>Yer</th>
+                                        <th>Kapasite</th>
+                                        <th>Durum</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>@item.Title</td>
+                                            <td>@(item.Description?.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)</td>
+                                            <td>@item.StartDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td>@item.Location</td>
+                                            <td>@item.Capacity</td>
+                                            <td>
+                                                @{
+                                                    string badgeClass = "badge-secondary";
+                                                    string statusText = "Bilinmiyor";
+                                                    
+                                                    if (item.IsActive && item.StartDate > DateTime.Now)
+                                                    {
+                                                        badgeClass = "bg-success";
+                                                        statusText = "Aktif";
+                                                    }
+                                                    else if (item.IsActive && item.StartDate <= DateTime.Now)
+                                                    {
+                                                        badgeClass = "bg-info";
+                                                        statusText = "Gerçekleşti";
+                                                    }
+                                                    else
+                                                    {
+                                                        badgeClass = "bg-danger";
+                                                        statusText = "İptal Edildi";
+                                                    }
+                                                }
+                                                <span class="badge @badgeClass">@statusText</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    
+                                                    @if (User.IsInRole("Admin") || User.IsInRole("EventManager"))
+                                                    {
+                                                        <a href="javascript:void(0)" class="btn btn-primary duzenle-buton" data-event-id="@item.Id" data-bs-toggle="modal" data-bs-target="#editEventModal">
+                                                            <i class="fas fa-pen"></i> Düzenle
+                                                        </a>
+                                                        <form asp-action="CancelEvent" method="post" class="d-inline">
+                                                            <input type="hidden" name="id" value="@item.Id" />
+                                                            <button type="submit" class="btn btn-danger iptal-buton" onclick="return confirm('Bu etkinliği iptal etmek istediğinizden emin misiniz?')">
+                                                                <i class="fas fa-times-circle"></i> İptal Et
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    
+                                                    @if (item.IsActive && item.StartDate > DateTime.Now && !User.IsInRole("Admin") && !User.IsInRole("EventManager"))
+                                                    {
+                                                        <a asp-action="Register" asp-route-id="@item.Id" class="btn btn-sm btn-success">
+                                                            <i class="fas fa-check-circle"></i> Kayıt Ol
+                                                        </a>
+                                                    }
+                                                    
+                                                    <button type="button" class="btn btn-info katilimci-buton" data-bs-toggle="modal" data-bs-target="#participantsModal" data-event-id="@item.Id" data-event-title="@item.Title">
+                                                        <i class="fas fa-users"></i> Katılımcılar
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            Henüz etkinlik bulunmamaktadır.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ParticipantModal")
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable
+            if ($.fn.DataTable) {
+                $('#eventsTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+                    }
+                });
+            }
+            
+            // Katılımcılar modalı için
+            $('#participantsModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var eventId = button.data('event-id');
+                var eventTitle = button.data('event-title');
+                
+                // Modal başlığını ayarla
+                $(this).find('.modal-title').text(eventTitle + ' - Katılımcılar');
+                $(this).find('.modal-title').data('event-id', eventId);
+                
+                // Katılımcıları yükle
+                loadParticipants(eventId);
+            });
+            
+            // Düzenle butonu işlemi için
+            $('.duzenle-buton').click(function() {
+                var eventId = $(this).data('event-id');
+                // AJAX ile etkinlik bilgilerini getir
+                $.get('/api/events/' + eventId, function(data) {
+                    // Modal alanlarını doldur
+                    $('#editEventForm #Id').val(data.id);
+                    $('#editEventForm #Title').val(data.title);
+                    $('#editEventForm #Description').val(data.description);
+                    // ... diğer alanlar
+                });
+            });
+            
+            // İptal Et işlemi için form onaylama
+            $('.iptal-buton').parent('form').submit(function(e) {
+                if (!confirm('Bu etkinliği iptal etmek istediğinizden emin misiniz?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // Katılımcıları yükleme fonksiyonu
+        function loadParticipants(eventId) {
+            $('#participantsLoading').removeClass('d-none');
+            $('#participantsList').addClass('d-none');
+            $('#noParticipants').addClass('d-none');
+            
+            $.ajax({
+                url: '/api/events/' + eventId + '/registrations',
+                type: 'GET',
+                success: function(response) {
+                    $('#participantsLoading').addClass('d-none');
+                    
+                    if (response && response.length > 0) {
+                        // Tablo içeriğini oluştur
+                        var tableBody = $('#participantsTableBody');
+                        tableBody.empty();
+                        
+                        response.forEach(function(participant) {
+                            // Katılımcı satırını ekle
+                        });
+                        
+                        $('#participantsList').removeClass('d-none');
+                    } else {
+                        $('#noParticipants').removeClass('d-none');
+                    }
+                },
+                error: function() {
+                    $('#participantsLoading').addClass('d-none');
+                    $('#noParticipants').removeClass('d-none')
+                        .text('Katılımcılar yüklenirken bir hata oluştu.');
+                }
+            });
+        }
+    </script>
+} 

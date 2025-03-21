@@ -49,5 +49,8 @@ namespace EventManagement.Domain.Entities
         
         // Navigasyon özellikleri
         public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+        
+        // Katılımcılar - Attendees tablosu ile ilişki
+        public virtual ICollection<Attendee> Attendees { get; set; } = new List<Attendee>();
     }
 } 

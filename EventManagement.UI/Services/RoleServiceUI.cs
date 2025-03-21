@@ -1,12 +1,13 @@
 using EventManagement.UI.Models;
+using EventManagement.UI.Interfaces;
 
 namespace EventManagement.UI.Services
 {
-    public class RoleService : IRoleService
+    public class RoleServiceUI : IRoleServiceUI
     {
-        private readonly IApiService _apiService;
+        private readonly IApiServiceUI _apiService;
 
-        public RoleService(IApiService apiService)
+        public RoleServiceUI(IApiServiceUI apiService)
         {
             _apiService = apiService;
         }
@@ -51,4 +52,4 @@ namespace EventManagement.UI.Services
             };
         }
     }
-} 
+}

@@ -15,6 +15,7 @@ namespace EventManagement.Infrastructure.Data
         public DbSet<Registration> Registrations { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Attendee> Attendees { get; set; }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -80,6 +81,19 @@ namespace EventManagement.Infrastructure.Data
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
             
+            // Attendee konfigürasyonu
+            modelBuilder.Entity<Attendee>()
+                .HasOne(a => a.Event)
+                .WithMany(e => e.Attendees)
+                .HasForeignKey(a => a.EventId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            modelBuilder.Entity<Attendee>()
+                .HasOne(a => a.Tenant)
+                .WithMany(t => t.Attendees)
+                .HasForeignKey(a => a.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
             // Soft delete filtresi
             modelBuilder.Entity<Tenant>().HasQueryFilter(t => !t.IsDeleted);
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
@@ -87,6 +101,7 @@ namespace EventManagement.Infrastructure.Data
             modelBuilder.Entity<Registration>().HasQueryFilter(r => !r.IsDeleted);
             modelBuilder.Entity<Role>().HasQueryFilter(r => !r.IsDeleted);
             modelBuilder.Entity<UserRole>().HasQueryFilter(ur => !ur.IsDeleted);
+            modelBuilder.Entity<Attendee>().HasQueryFilter(a => !a.IsDeleted);
         }
         
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EventManagement.UI.Models.DTOs
+namespace EventManagement.UI.DTOs
 {
     public class LoginDto
     {
@@ -13,7 +13,7 @@ namespace EventManagement.UI.Models.DTOs
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; }
-        
+
         // Tenant subdomain bilgisi
         public string? Subdomain { get; set; }
     }
@@ -43,6 +43,8 @@ namespace EventManagement.UI.Models.DTOs
         public string PhoneNumber { get; set; } = string.Empty;
 
         public string Role { get; set; } = "User";
+        
+        public string? Subdomain { get; set; }
     }
 
     public class AuthResponseDto
@@ -51,6 +53,7 @@ namespace EventManagement.UI.Models.DTOs
         public string Message { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
         public UserDto? User { get; set; }
+        public string? Tenant { get; set; }
     }
 
     public class UserDto
@@ -61,5 +64,9 @@ namespace EventManagement.UI.Models.DTOs
         public string LastName { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public Guid TenantId { get; set; }
+
+        public string Name => $"{FirstName} {LastName}";
+
+        public string PhoneNumber { get; internal set; }
     }
-} 
+}

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EventManagement.UI.Models.DTOs
+namespace EventManagement.UI.DTOs
 {
     public class TenantDto
     {
@@ -67,4 +67,4 @@ namespace EventManagement.UI.Models.DTOs
         [Display(Name = "Aktif")]
         public bool IsActive { get; set; }
     }
-} 
+}

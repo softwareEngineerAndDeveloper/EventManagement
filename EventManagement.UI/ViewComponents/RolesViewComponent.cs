@@ -1,3 +1,4 @@
+using EventManagement.UI.Interfaces;
 using EventManagement.UI.Models;
 using EventManagement.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,10 +7,10 @@ namespace EventManagement.UI.ViewComponents
 {
     public class RolesViewComponent : ViewComponent
     {
-        private readonly IRoleService _roleService;
+        private readonly IRoleServiceUI _roleService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public RolesViewComponent(IRoleService roleService, IHttpContextAccessor httpContextAccessor)
+        public RolesViewComponent(IRoleServiceUI roleService, IHttpContextAccessor httpContextAccessor)
         {
             _roleService = roleService;
             _httpContextAccessor = httpContextAccessor;

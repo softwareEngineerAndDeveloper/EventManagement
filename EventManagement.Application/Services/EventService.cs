@@ -76,7 +76,8 @@ namespace EventManagement.Application.Services
                 MaxAttendees = createEventDto.MaxAttendees,
                 IsPublic = createEventDto.IsPublic,
                 TenantId = tenantId,
-                Status = EventStatus.Pending,
+                Status = EventStatus.Approved,
+                IsCancelled = false,
                 CreatorId = createEventDto.CreatorId
             };
             
@@ -117,6 +118,7 @@ namespace EventManagement.Application.Services
             @event.Capacity = updateEventDto.MaxAttendees;
             @event.IsPublic = updateEventDto.IsPublic;
             @event.IsCancelled = updateEventDto.IsCancelled;
+            @event.Status = updateEventDto.Status;
             
             await _unitOfWork.Events.UpdateAsync(@event);
             await _unitOfWork.SaveChangesAsync();
@@ -159,7 +161,7 @@ namespace EventManagement.Application.Services
                 throw new NotFoundException(nameof(Event), id);
                 
             @event.IsCancelled = true;
-            @event.Status = EventStatus.Cancelled;
+            @event.Status = Domain.Entities.EventStatus.Cancelled;
             await _unitOfWork.Events.UpdateAsync(@event);
             await _unitOfWork.SaveChangesAsync();
             
@@ -180,7 +182,7 @@ namespace EventManagement.Application.Services
             if (@event == null)
                 throw new NotFoundException(nameof(Event), id);
                 
-            @event.Status = EventStatus.Approved;
+            @event.Status = Domain.Entities.EventStatus.Approved;
             await _unitOfWork.Events.UpdateAsync(@event);
             await _unitOfWork.SaveChangesAsync();
             
@@ -201,7 +203,7 @@ namespace EventManagement.Application.Services
             if (@event == null)
                 throw new NotFoundException(nameof(Event), id);
                 
-            @event.Status = EventStatus.Rejected;
+            @event.Status = Domain.Entities.EventStatus.Rejected;
             await _unitOfWork.Events.UpdateAsync(@event);
             await _unitOfWork.SaveChangesAsync();
             
@@ -221,7 +223,7 @@ namespace EventManagement.Application.Services
                 async () => {
                     var events = await _unitOfWork.Events.FindAsync(e => 
                         e.TenantId == tenantId && 
-                        e.Status == EventStatus.Pending);
+                        e.Status == Domain.Entities.EventStatus.Pending);
                         
                     var eventDtos = events.Select(e => MapToDto(e)).ToList();
                     
