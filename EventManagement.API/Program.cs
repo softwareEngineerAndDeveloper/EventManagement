@@ -57,7 +57,7 @@ builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 
 
-// Redis Cache Service
+// Redis Cache Service kullan
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost";
@@ -70,6 +70,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     var configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost";
     var configOptions = ConfigurationOptions.Parse(configuration);
     configOptions.AbortOnConnectFail = false; // Bağlantı başarısız olduğunda devam et
+    configOptions.ConnectTimeout = 30000; // 30 saniye timeout
+    configOptions.SyncTimeout = 30000; 
+    configOptions.ConnectRetry = 5; // 5 kez bağlantıyı tekrar deneme
     return ConnectionMultiplexer.Connect(configOptions);
 });
 

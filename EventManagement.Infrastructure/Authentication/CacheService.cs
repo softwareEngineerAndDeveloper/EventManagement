@@ -69,7 +69,7 @@ namespace EventManagement.Infrastructure.Authentication
                 var server = _redisConnection.GetServer(_redisConnection.GetEndPoints().First());
                 var db = _redisConnection.GetDatabase();
                 
-                // Redis SCAN komutuyla belirtilen öne ile eşleşen tüm anahtarları bul
+                // Redis SCAN komutuyla belirtilen önek ile eşleşen tüm anahtarları bul
                 var keys = server.Keys(pattern: $"{prefix}*").ToArray();
                 
                 if (keys.Any())

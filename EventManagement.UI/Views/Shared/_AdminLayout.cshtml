@@ -61,7 +61,7 @@
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="avatar-circle me-2">
-                        <span class="avatar-initials">@(User.Identity?.Name?.Substring(0, 1) ?? "A")</span>
+                        <span class="avatar-initials">@(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "A")</span>
                     </div>
                     <span class="d-none d-lg-inline">@User.Identity?.Name</span>
                 </a>
