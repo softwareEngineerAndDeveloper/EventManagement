@@ -1,0 +1,88 @@
+@model EventManagement.UI.Models.Event.EventViewModel
+
+@{
+    ViewData["Title"] = "Etkinliği Sil";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Etkinliği Sil</h1>
+    <p class="mb-4">Bu etkinliği silmek istediğinize emin misiniz?</p>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-danger text-white">
+            <h6 class="m-0 font-weight-bold">DİKKAT: Bu işlem geri alınamaz!</h6>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <strong>Uyarı:</strong> Bu etkinliği sildiğinizde, etkinlikle ilgili tüm kayıtlar da silinecektir.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="font-weight-bold">Etkinlik Bilgileri</h5>
+                    <hr />
+                    <dl class="row">
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Title)</dt>
+                        <dd class="col-sm-8">@Model.Title</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Location)</dt>
+                        <dd class="col-sm-8">@Model.Location</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.StartDate)</dt>
+                        <dd class="col-sm-8">@Model.StartDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.EndDate)</dt>
+                        <dd class="col-sm-8">@Model.EndDate.ToString("dd.MM.yyyy HH:mm")</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="font-weight-bold">Katılım Bilgileri</h5>
+                    <hr />
+                    <dl class="row">
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.RegistrationCount)</dt>
+                        <dd class="col-sm-8">@Model.RegistrationCount</dd>
+                        
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Status)</dt>
+                        <dd class="col-sm-8">
+                            @switch (Model.Status)
+                            {
+                                case EventManagement.UI.Models.Event.EventStatus.Pending:
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                    break;
+                                case EventManagement.UI.Models.Event.EventStatus.Approved:
+                                    <span class="badge bg-success">Onaylandı</span>
+                                    break;
+                                case EventManagement.UI.Models.Event.EventStatus.Rejected:
+                                    <span class="badge bg-danger">Reddedildi</span>
+                                    break;
+                                case EventManagement.UI.Models.Event.EventStatus.Cancelled:
+                                    <span class="badge bg-secondary">İptal Edildi</span>
+                                    break;
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <form asp-action="Delete" asp-controller="Event" asp-area="Admin" method="post" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Etkinliği Sil
+                </button>
+                <a href="@Url.Action("Index", "Event", new { area = "Admin" })" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> İptal
+                </a>
+            </form>
+        </div>
+    </div>
+</div> 

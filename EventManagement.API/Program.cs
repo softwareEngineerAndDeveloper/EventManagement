@@ -55,7 +55,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
-
+builder.Services.AddScoped<IAttendeeService, AttendeeService>();
+builder.Services.AddScoped<IAttendeeRepository, AttendeeRepository>();
 
 // Redis Cache Service kullan
 builder.Services.AddStackExchangeRedisCache(options =>

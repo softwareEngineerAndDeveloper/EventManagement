@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Yönetim Paneli</title>
+    <title>@ViewData["Title"] - Event Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
@@ -17,9 +17,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" id="brandLink">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-calendar-check"></i>
+                    <img src="https://www.cottgroup.com/images/cott/cottgroup-logo.svg" alt="Logo" style="width: 100px; height: 130px;">
                 </div>
-                <div class="sidebar-brand-text mx-3">Yönetim Paneli</div>
+                <!-- <div class="sidebar-brand-text mx-3">Yönetim Paneli</div>-->
             </a>
 
             <!-- Divider -->
@@ -69,17 +69,8 @@
                         <h6 class="collapse-header">Etkinlik Yönetimi:</h6>
                         <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Index">Tüm Etkinlikler</a>
                         <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Create">Yeni Etkinlik</a>
-                        <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Approvals">Onay Bekleyenler</a>
                     </div>
                 </div>
-            </li>
-
-            <!-- Nav Item - Registrations -->
-            <li class="nav-item">
-                <a class="nav-link" asp-area="Admin" asp-controller="Registration" asp-action="Index">
-                    <i class="fas fa-fw fa-clipboard-list"></i>
-                    <span>Kayıtlar</span>
-                </a>
             </li>
 
             <!-- Divider -->

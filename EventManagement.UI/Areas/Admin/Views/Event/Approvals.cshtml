@@ -1,0 +1,294 @@
+@model List<EventManagement.UI.Models.Attendee.AttendeeViewModel>
+@using EventManagement.UI.Models.Attendee
+@using EventManagement.UI.Models.Event
+
+@{
+    ViewData["Title"] = "Etkinlik Katılımcı Onayları";
+    Layout = "_LayoutAdmin";
+    var eventModel = ViewBag.Event as EventViewModel;
+    var eventId = ViewBag.EventId as Guid?;
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Etkinlik Katılımcı Onayları</h1>
+    <p class="mb-4">@eventModel?.Title etkinliğinin katılımcı listesini onaylayın ve e-posta olarak alın.</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- E-posta Gönderme Formu -->
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Katılımcı Listesini E-posta Olarak Al</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="SendAttendeesList" asp-controller="Event" asp-area="Admin" method="post" id="sendEmailForm">
+                        <input type="hidden" name="eventId" value="@eventId" />
+                        
+                        <div class="form-group mb-3">
+                            <label for="recipientEmail" class="form-label">E-posta Adresi</label>
+                            <input type="email" class="form-control" id="recipientEmail" name="recipientEmail" required maxlength="100" placeholder="E-posta adresinizi girin" />
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="sendAttendeesList()">
+                            <i class="fas fa-envelope"></i> Katılımcı Listesini Gönder
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Etkinlik Bilgileri</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Etkinlik</dt>
+                        <dd class="col-sm-8">@eventModel?.Title</dd>
+                        
+                        <dt class="col-sm-4">Tarih</dt>
+                        <dd class="col-sm-8">@eventModel?.StartDate.ToString("dd.MM.yyyy HH:mm")</dd>
+                        
+                        <dt class="col-sm-4">Konum</dt>
+                        <dd class="col-sm-8">@eventModel?.Location</dd>
+                        
+                        <dt class="col-sm-4">Toplam Kayıt</dt>
+                        <dd class="col-sm-8">@(Model != null ? Model.Count : 0)</dd>
+                        
+                        <dt class="col-sm-4">Onaylanan</dt>
+                        <dd class="col-sm-8">@(Model != null ? Model.Count(a => a.Status == AttendeeStatus.Confirmed) : 0)</dd>
+                        
+                        <dt class="col-sm-4">Bekleyen</dt>
+                        <dd class="col-sm-8">@(Model != null ? Model.Count(a => a.Status == AttendeeStatus.Pending) : 0)</dd>
+                        
+                        <dt class="col-sm-4">İptal Edilen</dt>
+                        <dd class="col-sm-8">@(Model != null ? Model.Count(a => a.Status == AttendeeStatus.Cancelled) : 0)</dd>
+                    </dl>
+                    
+                    <a href="@Url.Action("Attendees", "Event", new { area = "Admin", id = eventId })" class="btn btn-primary btn-sm mt-2">
+                        <i class="fas fa-users"></i> Katılımcıları Yönet
+                    </a>
+                    
+                    <a href="@Url.Action("Details", "Event", new { area = "Admin", id = eventId })" class="btn btn-secondary btn-sm mt-2">
+                        <i class="fas fa-arrow-left"></i> Etkinlik Detaylarına Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Katılımcı Listesi -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Katılımcı Onay Listesi</h6>
+                    <div class="dropdown no-arrow">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-filter"></i> Filtrele
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                            <li><a class="dropdown-item filter-status" href="#" data-status="all">Tümü</a></li>
+                            <li><a class="dropdown-item filter-status" href="#" data-status="pending">Beklemede</a></li>
+                            <li><a class="dropdown-item filter-status" href="#" data-status="confirmed">Onaylandı</a></li>
+                            <li><a class="dropdown-item filter-status" href="#" data-status="cancelled">İptal Edildi</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="attendeesTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Ad Soyad</th>
+                                    <th>E-posta</th>
+                                    <th>Telefon</th>
+                                    <th>Durum</th>
+                                    <th>Katıldı</th>
+                                    <th>E-posta Bildirimi</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    @foreach (var item in Model)
+                                    {
+                                        string statusClass = item.Status switch
+                                        {
+                                            AttendeeStatus.Pending => "status-pending",
+                                            AttendeeStatus.Confirmed => "status-confirmed",
+                                            AttendeeStatus.Cancelled => "status-cancelled",
+                                            _ => ""
+                                        };
+                                        
+                                        <tr class="@statusClass">
+                                            <td>@item.Name</td>
+                                            <td>@item.Email</td>
+                                            <td>@item.Phone</td>
+                                            <td>
+                                                @switch (item.Status)
+                                                {
+                                                    case AttendeeStatus.Pending:
+                                                        <span class="badge bg-warning text-dark">Beklemede</span>
+                                                        break;
+                                                    case AttendeeStatus.Confirmed:
+                                                        <span class="badge bg-success">Onaylandı</span>
+                                                        break;
+                                                    case AttendeeStatus.Cancelled:
+                                                        <span class="badge bg-danger">İptal Edildi</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.HasAttended)
+                                                {
+                                                    <span class="badge bg-success">Evet</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Hayır</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.SendEmailNotification)
+                                                {
+                                                    <span class="badge bg-success">Evet</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Hayır</span>
+                                                }
+                                            </td>
+                                            <td>@item.RegistrationDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="@Url.Action("Attendees", "Event", new { area = "Admin", id = eventId })" class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center">Bu etkinlik için katılımcı bulunamadı.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Sweet Alert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#attendeesTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+                    emptyTable: "Bu etkinlik için katılımcı bulunamadı.",
+                    zeroRecords: "Eşleşen katılımcı kaydı bulunamadı",
+                    info: "_TOTAL_ katılımcıdan _START_ - _END_ arası gösteriliyor",
+                    infoEmpty: "Kayıt bulunamadı",
+                    infoFiltered: "(_MAX_ kayıt arasından filtrelendi)"
+                },
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                responsive: true,
+                ordering: true,
+                paging: true,
+                pageLength: 10
+            });
+            
+            // Filtre işlemleri
+            $('.filter-status').on('click', function(e) {
+                e.preventDefault();
+                var status = $(this).data('status');
+                
+                if (status === 'all') {
+                    $('#attendeesTable tbody tr').show();
+                } else {
+                    $('#attendeesTable tbody tr').hide();
+                    $('#attendeesTable tbody tr.status-' + status).show();
+                }
+            });
+            
+            // Başarılı mesajı kontrolü
+            @if (TempData["EmailSent"] != null && Convert.ToBoolean(TempData["EmailSent"]))
+            {
+                <text>
+                Swal.fire({
+                    title: 'Başarılı!',
+                    html: 'Katılımcı listesi başarıyla e-posta adresinize gönderildi.<br><br><strong>E-posta:</strong> @TempData["EmailAddress"]<br><strong>Konu:</strong> @TempData["EmailSubject"]<br><strong>Katılımcı Sayısı:</strong> @TempData["AttendeeCount"]',
+                    icon: 'success',
+                    confirmButtonText: 'Tamam'
+                });
+                </text>
+            }
+        });
+        
+        // E-posta gönderme işlemi
+        function sendAttendeesList() {
+            var email = $('#recipientEmail').val();
+            
+            if (!email) {
+                Swal.fire({
+                    title: 'Uyarı!',
+                    text: 'Lütfen bir e-posta adresi girin.',
+                    icon: 'warning',
+                    confirmButtonText: 'Tamam'
+                });
+                return;
+            }
+            
+            // E-posta doğrulama
+            var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            if (!emailRegex.test(email)) {
+                Swal.fire({
+                    title: 'Uyarı!',
+                    text: 'Lütfen geçerli bir e-posta adresi girin.',
+                    icon: 'warning',
+                    confirmButtonText: 'Tamam'
+                });
+                return;
+            }
+            
+            // Loading göster
+            Swal.fire({
+                title: 'E-posta gönderiliyor...',
+                html: 'Lütfen bekleyin',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Formu gönder
+            $('#sendEmailForm').submit();
+        }
+    </script>
+} 

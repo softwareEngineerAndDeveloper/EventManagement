@@ -134,7 +134,8 @@ namespace EventManagement.Application.Services
                     RegistrationDate = DateTime.UtcNow,
                     Notes = createAttendeeDto.Notes,
                     HasAttended = false,
-                    IsCancelled = false
+                    IsCancelled = false,
+                    TenantId = tenantId
                 };
                 
                 var createdAttendee = await _attendeeRepository.CreateAttendeeAsync(attendee);

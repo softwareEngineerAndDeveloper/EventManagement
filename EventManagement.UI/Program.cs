@@ -15,7 +15,7 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 // ApiClient yapılandırması
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:2025/";
+    var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5294/";
     client.BaseAddress = new Uri(baseUrl);
     client.DefaultRequestHeaders.Accept.Clear();
     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -31,6 +31,14 @@ builder.Services.AddHttpClient("ApiClient", client =>
 // Servisler
 builder.Services.AddScoped<IApiService, ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Logging
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders();
+    logging.AddConsole();
+    logging.AddDebug();
+});
 
 // Cookie tabanlı kimlik doğrulama ekle
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

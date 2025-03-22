@@ -251,7 +251,7 @@ namespace EventManagement.API.Controllers
         /// <summary>
         /// Etkinlik istatistiklerini getirir
         /// </summary>
-        [HttpGet("{eventId}/statistics")]
+        [HttpGet("{eventId}/attendee-statistics")]
         [Authorize(Roles = "Admin,EventManager")]
         public async Task<IActionResult> GetEventStatistics(Guid eventId)
         {

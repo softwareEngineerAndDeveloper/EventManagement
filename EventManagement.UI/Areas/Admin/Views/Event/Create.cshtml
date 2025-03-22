@@ -1,0 +1,142 @@
+@model EventManagement.UI.Models.Event.EventViewModel
+
+@{
+    ViewData["Title"] = "Yeni Etkinlik Oluştur";
+    Layout = "_LayoutAdmin";
+    var tenants = ViewBag.Tenants as List<EventManagement.UI.Models.Tenant.TenantViewModel> ?? new List<EventManagement.UI.Models.Tenant.TenantViewModel>();
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Yeni Etkinlik Oluştur</h1>
+    <p class="mb-4">Aşağıdaki formu doldurarak yeni bir etkinlik oluşturun.</p>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Etkinlik Bilgileri</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="EndDate" class="form-label"></label>
+                            <input asp-for="EndDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="MaxAttendees" class="form-label"></label>
+                            <input asp-for="MaxAttendees" class="form-control" type="number" min="1" />
+                            <span asp-validation-for="MaxAttendees" class="text-danger"></span>
+                            <small class="form-text text-muted">Etkinliğe katılabilecek maksimum katılımcı sayısı.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="Capacity" class="form-label"></label>
+                            <input asp-for="Capacity" class="form-control" type="number" min="1" />
+                            <span asp-validation-for="Capacity" class="text-danger"></span>
+                            <small class="form-text text-muted">Etkinlik mekanının kapasitesi.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="SelectedTenant" class="form-label">Tenant Seçimi</label>
+                            <select id="SelectedTenant" name="SelectedTenant" class="form-control">
+                                @foreach (var tenant in tenants)
+                                {
+                                    <option value="@tenant.Subdomain">@tenant.Name</option>
+                                }
+                            </select>
+                            <small class="form-text text-muted">Etkinliğin oluşturulacağı tenant.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsPublic" class="form-check-input" />
+                            <label asp-for="IsPublic" class="form-check-label"></label>
+                            <span asp-validation-for="IsPublic" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Geri Dön
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function () {
+            // Form gönderilmeden önce tarihleri kontrol et
+            $('form').on('submit', function() {
+                var startDate = new Date($('#StartDate').val());
+                var endDate = new Date($('#EndDate').val());
+                
+                if (endDate < startDate) {
+                    alert('Bitiş tarihi başlangıç tarihinden önce olamaz!');
+                    return false;
+                }
+                
+                return true;
+            });
+        });
+    </script>
+} 

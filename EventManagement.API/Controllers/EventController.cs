@@ -38,7 +38,7 @@ namespace EventManagement.API.Controllers
             return Ok(result);
         }
         
-        [HttpGet("{id}/statistics")]
+        [HttpGet("{id}/event-statistics")]
         [Authorize]
         public async Task<ActionResult<ResponseDto<EventStatisticsDto>>> GetEventStatistics(Guid id)
         {

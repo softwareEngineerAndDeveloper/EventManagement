@@ -1,0 +1,135 @@
+@model EventManagement.UI.Models.Event.EventViewModel
+
+@{
+    ViewData["Title"] = "Etkinlik Düzenle";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Etkinlik Düzenle</h1>
+    <p class="mb-4">Etkinlik bilgilerini düzenleyebilirsiniz.</p>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Etkinlik Bilgileri</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" asp-controller="Event" asp-area="Admin" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreatorId" />
+                <input type="hidden" asp-for="CreatedDate" />
+                <input type="hidden" asp-for="RegistrationCount" />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="EndDate" class="form-label"></label>
+                            <input asp-for="EndDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="MaxAttendees" class="form-label"></label>
+                            <input asp-for="MaxAttendees" class="form-control" type="number" min="0" />
+                            <span asp-validation-for="MaxAttendees" class="text-danger"></span>
+                            <small class="form-text text-muted">Sınırsız kapasite için boş bırakın.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select">
+                                <option value="@EventManagement.UI.Models.Event.EventStatus.Pending">Onay Bekliyor</option>
+                                <option value="@EventManagement.UI.Models.Event.EventStatus.Approved">Onaylandı</option>
+                                <option value="@EventManagement.UI.Models.Event.EventStatus.Rejected">Reddedildi</option>
+                                <option value="@EventManagement.UI.Models.Event.EventStatus.Cancelled">İptal Edildi</option>
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3 mt-4">
+                            <input asp-for="IsPublic" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsPublic" class="form-check-label"></label>
+                            <span asp-validation-for="IsPublic" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="IsCancelled" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsCancelled" class="form-check-label"></label>
+                            <span asp-validation-for="IsCancelled" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Kaydet
+                    </button>
+                    <a href="@Url.Action("Index", "Event", new { area = "Admin" })" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> İptal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            // Datetime-local input formatlama
+            function formatDateTimeForInput(date) {
+                return date.slice(0, 16); // "yyyy-MM-ddThh:mm" formatına dönüştür
+            }
+            
+            var startDate = $('input[name="StartDate"]').val();
+            var endDate = $('input[name="EndDate"]').val();
+            
+            if (startDate) {
+                $('input[name="StartDate"]').val(formatDateTimeForInput(startDate));
+            }
+            
+            if (endDate) {
+                $('input[name="EndDate"]').val(formatDateTimeForInput(endDate));
+            }
+        });
+    </script>
+} 

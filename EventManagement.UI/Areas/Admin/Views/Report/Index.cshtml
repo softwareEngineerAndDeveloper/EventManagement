@@ -1,0 +1,562 @@
+@model EventManagement.UI.Models.Report.DashboardReportViewModel
+@{
+    ViewData["Title"] = "Raporlar";
+    Layout = "_LayoutAdmin";
+}
+
+<!-- Sayfa Başlığı -->
+<div class="container-fluid mt-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Raporlar</h1>
+    </div>
+
+    <p class="mb-4">
+        Bu sayfada etkinliklerle ilgili genel rapor bilgilerini ve istatistikleri görüntüleyebilirsiniz.
+    </p>
+
+    <!-- Başarı ve Hata Mesajları -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Etkinlik Seçici -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="eventSelector" class="form-label">Detaylı İstatistiklerini Görmek İstediğiniz Etkinliği Seçin</label>
+                        <select id="eventSelector" class="form-select">
+                            <option value="">-- Etkinlik Seçin --</option>
+                            @foreach (var item in ViewBag.Events)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafik ve Tablo Bölümü -->
+    <div class="row mb-4">
+        <!-- Sol: Etkinlik İstatistikleri -->
+        <div class="col-lg-5">
+            <div id="eventStatsContainer" class="@(Model.EventStatistics == null ? "d-none" : "")">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 id="eventStatsTitle" class="card-title mb-0">
+                            @(Model.EventStatistics?.EventTitle ?? "Etkinlik İstatistikleri")
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Tarih ve Süre Bilgileri -->
+                        <div class="row mb-4">
+                            <!-- Başlangıç -->
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Başlangıç</h6>
+                                        <p class="card-text mb-0 fs-5">@(Model.EventStatistics?.EventDate.ToShortDateString() ?? "-")</p>
+                                        <p class="card-text fs-5">@(Model.EventStatistics?.EventDate.ToString("HH:mm") ?? "-")</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bitiş -->
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Bitiş</h6>
+                                        <p class="card-text mb-0 fs-5">@(Model.EventStatistics?.EventDate.AddHours(3).ToShortDateString() ?? "-")</p>
+                                        <p class="card-text fs-5">@(Model.EventStatistics?.EventDate.AddHours(3).ToString("HH:mm") ?? "-")</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Süre -->
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Süre</h6>
+                                        <p class="card-text fs-5">3 Saat</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Toplam Kayıt -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Toplam Kayıt</h6>
+                                        <p class="card-text display-4">@(Model.EventStatistics?.TotalRegistrations ?? 0)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- İstatistikler -->
+                        <div class="row">
+                            <!-- Onaylanan -->
+                            <div class="col-md-4">
+                                <div class="stat-card mb-3">
+                                    <div class="stat-label">Onaylanan</div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="stat-value-lg text-success">@(Model.EventStatistics?.ConfirmedAttendees ?? 0)</span>
+                                        <span class="stat-percent text-success">%@(Model.EventStatistics != null && Model.EventStatistics.TotalRegistrations > 0 ? Math.Round((double)(Model.EventStatistics.ConfirmedAttendees) / Model.EventStatistics.TotalRegistrations * 100, 1).ToString("0.0") : "0.0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Beklemede -->
+                            <div class="col-md-4">
+                                <div class="stat-card mb-3">
+                                    <div class="stat-label">Beklemede</div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="stat-value-lg text-warning">@(Model.EventStatistics?.PendingRegistrations ?? 0)</span>
+                                        <span class="stat-percent text-warning">%@(Model.EventStatistics != null && Model.EventStatistics.TotalRegistrations > 0 ? Math.Round((double)(Model.EventStatistics.PendingRegistrations) / Model.EventStatistics.TotalRegistrations * 100, 1).ToString("0.0") : "0.0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- İptal -->
+                            <div class="col-md-4">
+                                <div class="stat-card mb-3">
+                                    <div class="stat-label">İptal</div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="stat-value-lg text-danger">@(Model.EventStatistics?.CancelledRegistrations ?? 0)</span>
+                                        <span class="stat-percent text-danger">%@(Model.EventStatistics != null && Model.EventStatistics.TotalRegistrations > 0 ? Math.Round((double)(Model.EventStatistics.CancelledRegistrations) / Model.EventStatistics.TotalRegistrations * 100, 1).ToString("0.0") : "0.0")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- İstatistik yoksa gösterilecek mesaj -->
+            <div id="noStatsMessage" class="alert alert-info @(Model.EventStatistics != null ? "d-none" : "")">
+                <i class="bi bi-info-circle me-2"></i> Lütfen istatistiklerini görmek istediğiniz bir etkinlik seçin.
+            </div>
+        </div>
+        
+        <!-- Sağ: Katılımcı Listesi -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Katılımcı Listesi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="attendeesTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ad Soyad</th>
+                                    <th>E-posta</th>
+                                    <th>Telefon</th>
+                                    <th>Durum</th>
+                                    <th>Katıldı</th>
+                                    <th>Kayıt Tarihi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendeesTableBody">
+                                @if (Model.EventStatistics == null)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center">Lütfen bir etkinlik seçin</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .stat-value-lg {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-percent {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+    
+    <script>
+        // Sayfa yüklendiğinde çalışacak
+        document.addEventListener('DOMContentLoaded', function() {
+            // İstatistik alanlarını başlangıçta gizle
+            const eventStatsContainer = document.getElementById('eventStatsContainer');
+            if (eventStatsContainer) {
+                eventStatsContainer.classList.add('d-none');
+            }
+            
+            const noStatsMessage = document.getElementById('noStatsMessage');
+            if (noStatsMessage) {
+                noStatsMessage.classList.remove('d-none');
+            }
+            
+            // Event dropdown change olayı
+            document.getElementById('eventSelector').addEventListener('change', function() {
+                const eventId = this.value;
+                
+                if (!eventId) {
+                    // Etkinlik seçilmemişse istatistikleri gizle
+                    if (eventStatsContainer) eventStatsContainer.classList.add('d-none');
+                    if (noStatsMessage) noStatsMessage.classList.remove('d-none');
+                    
+                    // Katılımcı tablosunu temizle
+                    const tableBody = document.getElementById('attendeesTableBody');
+                    if (tableBody) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center">Lütfen bir etkinlik seçin</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    // DataTable'ı yeniden başlat
+                    if ($.fn.DataTable.isDataTable('#attendeesTable')) {
+                        $('#attendeesTable').DataTable().destroy();
+                    }
+                    initializeDataTable();
+                    return;
+                }
+                
+                console.log("Seçilen etkinlik ID:", eventId);
+                
+                // Etkinlik seçildiğinde istatistikleri ve katılımcıları getir
+                fetchEventStatistics(eventId);
+                fetchAttendeesList(eventId);
+            });
+            
+            // DataTable'ı sayfa yüklendiğinde başlatma kısmını kaldırıyorum
+            // Sadece etkinlik seçildiğinde ve veriler yüklendiğinde başlatılacak
+        });
+        
+        // AJAX ile etkinlik istatistiklerini getir
+        function fetchEventStatistics(eventId) {
+            if (!eventId) return;
+            
+            console.log("İstatistikler getiriliyor, EventId:", eventId);
+            
+            fetch(`/Admin/Report/GetEventStatistics?id=${eventId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('API yanıtı alınamadı: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Alınan istatistikler:", data);
+                    if (data && data.eventId) {
+                        updateEventStatistics(data);
+                    } else {
+                        showNoStatsMessage();
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    showNoStatsMessage();
+                });
+        }
+        
+        // AJAX ile etkinlik katılımcılarını getir
+        function fetchAttendeesList(eventId) {
+            if (!eventId) return;
+            
+            console.log("Katılımcılar getiriliyor, EventId:", eventId);
+            
+            // Önce katılımcı tablosunu temizle ve yükleniyor göster
+            const tableBody = document.getElementById('attendeesTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                            <span class="ms-2">Katılımcı listesi yükleniyor...</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // DataTable'ı temizle
+            if ($.fn.DataTable.isDataTable('#attendeesTable')) {
+                $('#attendeesTable').DataTable().destroy();
+            }
+            
+            fetch(`/Admin/Event/GetAttendees?id=${eventId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Katılımcılar getirilemedi: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Alınan katılımcılar:", data);
+                    updateAttendeesTable(data);
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    if (tableBody) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="text-center text-danger">
+                                    Katılımcı listesi alınırken bir hata oluştu: ${error.message}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    
+                    // Hata durumunda DataTable'ı yeniden başlat
+                    initializeDataTable();
+                });
+        }
+        
+        // Katılımcılar tablosunu güncelle
+        function updateAttendeesTable(attendees) {
+            const tableBody = document.getElementById('attendeesTableBody');
+            if (!tableBody) return;
+            
+            if (!attendees || attendees.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center">Bu etkinlik için kayıtlı katılımcı bulunmamaktadır.</td>
+                    </tr>
+                `;
+                
+                // DataTable'ı yeniden başlat
+                initializeDataTable();
+                return;
+            }
+            
+            let html = '';
+            attendees.forEach(attendee => {
+                let statusBadge = '';
+                let status = attendee.status;
+                if (typeof status === 'string') {
+                    // String olarak gelen değeri sayıya çevirelim
+                    switch(status.toLowerCase()) {
+                        case 'pending': status = 0; break;
+                        case 'confirmed': status = 1; break;
+                        case 'cancelled': status = 2; break;
+                        default: status = -1;
+                    }
+                }
+                
+                switch (status) {
+                    case 0: // Pending
+                        statusBadge = '<span class="badge bg-warning text-dark">Beklemede</span>';
+                        break;
+                    case 1: // Confirmed
+                        statusBadge = '<span class="badge bg-success">Onaylandı</span>';
+                        break;
+                    case 2: // Cancelled
+                        statusBadge = '<span class="badge bg-danger">İptal Edildi</span>';
+                        break;
+                    default:
+                        statusBadge = '<span class="badge bg-secondary">Bilinmiyor</span>';
+                }
+                
+                const attendedBadge = attendee.hasAttended 
+                    ? '<span class="badge bg-success">Evet</span>' 
+                    : '<span class="badge bg-secondary">Hayır</span>';
+                
+                const registrationDate = attendee.registrationDate 
+                    ? new Date(attendee.registrationDate) 
+                    : new Date();
+                    
+                html += `
+                    <tr>
+                        <td>${attendee.name || attendee.fullName || ''}</td>
+                        <td>${attendee.email || ''}</td>
+                        <td>${attendee.phone || '-'}</td>
+                        <td>${statusBadge}</td>
+                        <td>${attendedBadge}</td>
+                        <td>${registrationDate.toLocaleDateString('tr-TR')} ${registrationDate.toLocaleTimeString('tr-TR')}</td>
+                    </tr>
+                `;
+            });
+            
+            // Tabloyu güncelle
+            tableBody.innerHTML = html;
+            
+            // DataTable'ı yeniden başlat
+            initializeDataTable();
+        }
+        
+        // DataTable'ı başlatan fonksiyon
+        function initializeDataTable() {
+            console.log("DataTable yeniden başlatılıyor...");
+            
+            // Eğer zaten bir DataTable varsa yok et
+            if ($.fn.DataTable.isDataTable('#attendeesTable')) {
+                $('#attendeesTable').DataTable().destroy();
+            }
+            
+            // Yeni DataTable oluştur
+            setTimeout(() => {
+                $('#attendeesTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json'
+                    },
+                    pageLength: 10,
+                    ordering: true,
+                    paging: true,
+                    searching: true,
+                    info: true,
+                    destroy: true,
+                    responsive: true
+                });
+                
+                console.log("DataTable başlatıldı");
+            }, 100);
+        }
+        
+        // İstatistikleri güncelle
+        function updateEventStatistics(data) {
+            if (!data) return;
+            
+            console.log("İstatistikler güncelleniyor:", data);
+            
+            // İstatistik container'ını göster, hata mesajını gizle
+            const eventStatsContainer = document.getElementById('eventStatsContainer');
+            const noStatsMessage = document.getElementById('noStatsMessage');
+            
+            if (eventStatsContainer) {
+                eventStatsContainer.classList.remove('d-none');
+            }
+            
+            if (noStatsMessage) {
+                noStatsMessage.classList.add('d-none');
+            }
+            
+            // Başlık güncelle
+            const titleElement = document.getElementById('eventStatsTitle');
+            if (titleElement) {
+                titleElement.textContent = data.eventTitle || 'Etkinlik İstatistikleri';
+            }
+            
+            // Tarih ve süre bilgilerini güncelle
+            updateEventDates(data);
+            
+            // İstatistik değerlerini güncelle
+            document.querySelectorAll('.stat-value-lg.text-success').forEach(el => {
+                el.textContent = data.confirmedAttendees || 0;
+            });
+            
+            document.querySelectorAll('.stat-value-lg.text-warning').forEach(el => {
+                el.textContent = data.pendingRegistrations || 0;
+            });
+            
+            document.querySelectorAll('.stat-value-lg.text-danger').forEach(el => {
+                el.textContent = data.cancelledRegistrations || 0;
+            });
+            
+            // Toplam kayıt sayısını güncelle
+            const totalRegistrationsElements = getCardElements("Toplam Kayıt");
+            if (totalRegistrationsElements.length > 0) {
+                totalRegistrationsElements[0].textContent = data.totalRegistrations || 0;
+            }
+            
+            // Yüzde değerlerini güncelle
+            const total = data.totalRegistrations || 1;
+            const confirmRate = total > 0 ? Math.round((data.confirmedAttendees || 0) / total * 1000) / 10 : 0;
+            const pendingRate = total > 0 ? Math.round((data.pendingRegistrations || 0) / total * 1000) / 10 : 0;
+            const cancelRate = total > 0 ? Math.round((data.cancelledRegistrations || 0) / total * 1000) / 10 : 0;
+            
+            document.querySelectorAll('.stat-percent').forEach((el, index) => {
+                if (index === 0) el.textContent = '%' + confirmRate.toFixed(1);
+                if (index === 1) el.textContent = '%' + pendingRate.toFixed(1);
+                if (index === 2) el.textContent = '%' + cancelRate.toFixed(1);
+            });
+        }
+        
+        // İstatistik bulunamadı mesajı göster
+        function showNoStatsMessage() {
+            const containerElement = document.getElementById('eventStatsContainer');
+            const messageElement = document.getElementById('noStatsMessage');
+            
+            if (containerElement) {
+                containerElement.classList.add('d-none');
+            }
+            
+            if (messageElement) {
+                messageElement.classList.remove('d-none');
+            }
+        }
+        
+        // Başlangıç ve bitiş tarih elementlerini bulmak için alternatif bir yöntem
+        function getCardElements(titleText) {
+            const cards = document.querySelectorAll('.card-title');
+            for (let i = 0; i < cards.length; i++) {
+                if (cards[i].textContent.includes(titleText)) {
+                    return cards[i].closest('.card').querySelectorAll('.card-text');
+                }
+            }
+            return [];
+        }
+        
+        // jQuery selector yerine yeni yöntem kullanarak başlangıç ve bitiş tarihlerini güncelleyen fonksiyon
+        function updateEventDates(data) {
+            if (!data || !data.eventDate) return;
+            
+            const eventDate = new Date(data.eventDate);
+            const endDate = new Date(eventDate.getTime() + (3 * 60 * 60 * 1000)); // 3 saat ekle
+            
+            // Başlangıç tarihi ve saati
+            const startDateElements = getCardElements("Başlangıç");
+            if (startDateElements.length > 0) {
+                startDateElements[0].textContent = eventDate.toLocaleDateString('tr-TR');
+                if (startDateElements.length > 1) {
+                    startDateElements[1].textContent = eventDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+            
+            // Bitiş tarihi ve saati
+            const endDateElements = getCardElements("Bitiş");
+            if (endDateElements.length > 0) {
+                endDateElements[0].textContent = endDate.toLocaleDateString('tr-TR');
+                if (endDateElements.length > 1) {
+                    endDateElements[1].textContent = endDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        }
+    </script>
+} 

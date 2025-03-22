@@ -64,6 +64,11 @@ namespace EventManagement.Domain.Entities
         public bool IsCancelled { get; set; } = false;
 
         /// <summary>
+        /// Mail ile bilgilendirme yapılsın mı?
+        /// </summary>
+        public bool SendEmailNotification { get; set; } = true;
+
+        /// <summary>
         /// Tenant ilişkisi
         /// </summary>
         public Guid TenantId { get; set; }

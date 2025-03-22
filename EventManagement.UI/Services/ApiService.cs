@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace EventManagement.UI.Services
 {
@@ -12,11 +13,13 @@ namespace EventManagement.UI.Services
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly string _baseUrl;
+        private readonly ILogger<ApiService> _logger;
 
-        public ApiService(HttpClient httpClient, IConfiguration configuration)
+        public ApiService(HttpClient httpClient, IConfiguration configuration, ILogger<ApiService> logger)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _logger = logger;
             _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:2025/";
             _httpClient.BaseAddress = new Uri(_baseUrl);
         }
@@ -26,11 +29,65 @@ namespace EventManagement.UI.Services
             try
             {
                 PrepareAuthenticationHeader(token);
+                
+                _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("API İstek Hedef Tip: {Type}", typeof(T).FullName);
+                
                 var response = await _httpClient.GetAsync(endpoint);
+                
+                _logger.LogInformation("API Yanıt StatusCode: {StatusCode}", response.StatusCode);
+                
                 return await ProcessResponseAsync<T>(response);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "API Çağrı Hatası: {Message}", ex.Message);
+                _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
+                
+                return new ApiResponse<T>
+                {
+                    Success = false,
+                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        public async Task<ApiResponse<T>> GetAsyncWithHeaders<T>(string endpoint, string? token = null, Dictionary<string, string>? customHeaders = null)
+        {
+            try
+            {
+                PrepareAuthenticationHeader(token);
+
+                // Özel headerları ekle
+                if (customHeaders != null)
+                {
+                    foreach (var header in customHeaders)
+                    {
+                        // Eğer header zaten varsa, önce kaldır
+                        if (_httpClient.DefaultRequestHeaders.Contains(header.Key))
+                        {
+                            _httpClient.DefaultRequestHeaders.Remove(header.Key);
+                        }
+                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        _logger.LogInformation("Özel header eklendi: {Key}={Value}", header.Key, header.Value);
+                    }
+                }
+                
+                _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("API İstek Hedef Tip: {Type}", typeof(T).FullName);
+                
+                var response = await _httpClient.GetAsync(endpoint);
+                
+                _logger.LogInformation("API Yanıt StatusCode: {StatusCode}", response.StatusCode);
+                
+                return await ProcessResponseAsync<T>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API Çağrı Hatası: {Message}", ex.Message);
+                _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
+                
                 return new ApiResponse<T>
                 {
                     Success = false,
@@ -47,17 +104,60 @@ namespace EventManagement.UI.Services
                 PrepareAuthenticationHeader(token);
                 var json = JsonConvert.SerializeObject(data);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                Console.WriteLine($"API İstek: {_baseUrl}{endpoint}");
-                Console.WriteLine($"İçerik: {json}");
+                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("İçerik: {Json}", json);
                 
                 var response = await _httpClient.PostAsync(endpoint, content);
-                Console.WriteLine($"Yanıt Kodu: {response.StatusCode}");
+                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
                 
                 return await ProcessResponseAsync<T>(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"API Hatası: {ex.Message}");
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
+                return new ApiResponse<T>
+                {
+                    Success = false,
+                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        public async Task<ApiResponse<T>> PostAsyncWithHeaders<T>(string endpoint, object data, string? token = null, Dictionary<string, string>? customHeaders = null)
+        {
+            try
+            {
+                PrepareAuthenticationHeader(token);
+                
+                // Özel headerları ekle
+                if (customHeaders != null)
+                {
+                    foreach (var header in customHeaders)
+                    {
+                        // Eğer header zaten varsa, önce kaldır
+                        if (_httpClient.DefaultRequestHeaders.Contains(header.Key))
+                        {
+                            _httpClient.DefaultRequestHeaders.Remove(header.Key);
+                        }
+                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        _logger.LogInformation("Özel header eklendi: {Key}={Value}", header.Key, header.Value);
+                    }
+                }
+                
+                var json = JsonConvert.SerializeObject(data);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("İçerik: {Json}", json);
+                
+                var response = await _httpClient.PostAsync(endpoint, content);
+                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
+                
+                return await ProcessResponseAsync<T>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
                 return new ApiResponse<T>
                 {
                     Success = false,
@@ -72,12 +172,62 @@ namespace EventManagement.UI.Services
             try
             {
                 PrepareAuthenticationHeader(token);
-                var content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
+                var json = JsonConvert.SerializeObject(data);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("İçerik: {Json}", json);
+                
                 var response = await _httpClient.PutAsync(endpoint, content);
+                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
+                
                 return await ProcessResponseAsync<T>(response);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
+                return new ApiResponse<T>
+                {
+                    Success = false,
+                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        public async Task<ApiResponse<T>> PutAsyncWithHeaders<T>(string endpoint, object data, string? token = null, Dictionary<string, string>? customHeaders = null)
+        {
+            try
+            {
+                PrepareAuthenticationHeader(token);
+                
+                // Özel headerları ekle
+                if (customHeaders != null)
+                {
+                    foreach (var header in customHeaders)
+                    {
+                        // Eğer header zaten varsa, önce kaldır
+                        if (_httpClient.DefaultRequestHeaders.Contains(header.Key))
+                        {
+                            _httpClient.DefaultRequestHeaders.Remove(header.Key);
+                        }
+                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        _logger.LogInformation("Özel header eklendi: {Key}={Value}", header.Key, header.Value);
+                    }
+                }
+                
+                var json = JsonConvert.SerializeObject(data);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                _logger.LogInformation("İçerik: {Json}", json);
+                
+                var response = await _httpClient.PutAsync(endpoint, content);
+                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
+                
+                return await ProcessResponseAsync<T>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
                 return new ApiResponse<T>
                 {
                     Success = false,
@@ -97,6 +247,46 @@ namespace EventManagement.UI.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
+                return new ApiResponse<T>
+                {
+                    Success = false,
+                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
+                    StatusCode = (int)HttpStatusCode.InternalServerError
+                };
+            }
+        }
+
+        public async Task<ApiResponse<T>> DeleteAsyncWithHeaders<T>(string endpoint, string? token = null, Dictionary<string, string>? customHeaders = null)
+        {
+            try
+            {
+                PrepareAuthenticationHeader(token);
+                
+                // Özel headerları ekle
+                if (customHeaders != null)
+                {
+                    foreach (var header in customHeaders)
+                    {
+                        // Eğer header zaten varsa, önce kaldır
+                        if (_httpClient.DefaultRequestHeaders.Contains(header.Key))
+                        {
+                            _httpClient.DefaultRequestHeaders.Remove(header.Key);
+                        }
+                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        _logger.LogInformation("Özel header eklendi: {Key}={Value}", header.Key, header.Value);
+                    }
+                }
+                
+                _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+                var response = await _httpClient.DeleteAsync(endpoint);
+                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
+                
+                return await ProcessResponseAsync<T>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
                 return new ApiResponse<T>
                 {
                     Success = false,
@@ -120,15 +310,18 @@ namespace EventManagement.UI.Services
                     _httpClient.DefaultRequestHeaders.Remove("X-Tenant");
                 }
                 _httpClient.DefaultRequestHeaders.Add("X-Tenant", subdomain);
+                _logger.LogInformation("API isteğine X-Tenant eklenmiştir: {Tenant}", subdomain);
             }
 
             if (!string.IsNullOrEmpty(token))
             {
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                _logger.LogInformation("API isteğine Authorization token eklenmiştir");
             }
             else
             {
                 _httpClient.DefaultRequestHeaders.Authorization = null;
+                _logger.LogWarning("API isteğine Authorization token eklenmemiştir");
             }
         }
 
@@ -136,9 +329,9 @@ namespace EventManagement.UI.Services
         {
             var content = await response.Content.ReadAsStringAsync();
             var statusCode = (int)response.StatusCode;
-            Console.WriteLine($"API Yanıt İçeriği: {content}");
-            Console.WriteLine($"API Yanıt Durum Kodu: {statusCode}");
-            Console.WriteLine($"API Yanıt Hedef Tip: {typeof(T).FullName}");
+            _logger.LogInformation("API Yanıt İçeriği: {Content}", content);
+            _logger.LogInformation("API Yanıt Durum Kodu: {StatusCode}", statusCode);
+            _logger.LogInformation("API Yanıt Hedef Tip: {Type}", typeof(T).FullName);
 
             if (response.IsSuccessStatusCode)
             {
@@ -147,7 +340,7 @@ namespace EventManagement.UI.Services
                     // İçerik boş kontrolü
                     if (string.IsNullOrWhiteSpace(content))
                     {
-                        Console.WriteLine("API yanıtı boş içerik döndürdü!");
+                        _logger.LogWarning("API yanıtı boş içerik döndürdü!");
                         return new ApiResponse<T>
                         {
                             Success = false,
@@ -160,20 +353,20 @@ namespace EventManagement.UI.Services
                     try
                     {
                         var testParse = JsonConvert.DeserializeObject(content);
-                        Console.WriteLine($"JSON formatı geçerli: {testParse != null}");
+                        _logger.LogInformation("JSON formatı geçerli: {IsValid}", testParse != null);
                     }
                     catch (Exception jsonEx)
                     {
-                        Console.WriteLine($"JSON formatı geçersiz: {jsonEx.Message}");
+                        _logger.LogError(jsonEx, "JSON formatı geçersiz: {Message}", jsonEx.Message);
                     }
 
                     // API yanıtı wrapper içinde geliyor, önce wrapper'ı deserialize ediyoruz
-                    Console.WriteLine("API wrapper deserialize deneniyor...");
+                    _logger.LogInformation("API wrapper deserialize deneniyor...");
                     var apiWrapper = JsonConvert.DeserializeObject<ApiWrapper<T>>(content);
                     
                     if (apiWrapper != null)
                     {
-                        Console.WriteLine($"API wrapper deserialize başarılı. IsSuccess: {apiWrapper.IsSuccess}");
+                        _logger.LogInformation("API wrapper deserialize başarılı. IsSuccess: {IsSuccess}", apiWrapper.IsSuccess);
                         return new ApiResponse<T>
                         {
                             Success = apiWrapper.IsSuccess,
@@ -184,9 +377,9 @@ namespace EventManagement.UI.Services
                     }
                     
                     // Eğer wrapper yoksa, doğrudan içeriği deserialize et
-                    Console.WriteLine("Doğrudan tip deserialize deneniyor...");
+                    _logger.LogInformation("Doğrudan tip deserialize deneniyor...");
                     var data = JsonConvert.DeserializeObject<T>(content);
-                    Console.WriteLine($"Doğrudan deserialize sonucu: {data != null}");
+                    _logger.LogInformation("Doğrudan deserialize sonucu: {IsSuccess}", data != null);
                     
                     return new ApiResponse<T>
                     {
@@ -198,8 +391,8 @@ namespace EventManagement.UI.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"JSON Dönüştürme Hatası: {ex.GetType().Name}: {ex.Message}");
-                    Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                    _logger.LogError(ex, "JSON Dönüştürme Hatası: {ExceptionType}: {Message}", ex.GetType().Name, ex.Message);
+                    _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
                     
                     return new ApiResponse<T>
                     {
@@ -215,33 +408,39 @@ namespace EventManagement.UI.Services
                 
                 try
                 {
-                    Console.WriteLine("Hata yanıtı deserialize ediliyor...");
-                    var errorResponse = JsonConvert.DeserializeObject<dynamic>(content);
-                    Console.WriteLine($"Hata yanıtı: {errorResponse}");
+                    _logger.LogWarning("Hata yanıtı deserialize ediliyor...");
+                    var errorResponse = JsonConvert.DeserializeObject<object>(content);
+                    var errorResponseStr = JsonConvert.SerializeObject(errorResponse);
+                    _logger.LogWarning("Hata yanıtı: {ErrorResponse}", errorResponseStr);
                     
-                    if (errorResponse?.message != null)
+                    // Dinamik tiplerle çalışırken LogWarning sorununu gidermek için
+                    // object'e parse edip, gerekli özellikleri kontrol ediyoruz
+                    var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(content);
+                    
+                    if (json != null)
                     {
-                        errorMessage = errorResponse.message.ToString();
-                        Console.WriteLine($"Çıkarılan hata mesajı: {errorMessage}");
-                    }
-                    else if (errorResponse?.Message != null)
-                    {
-                        errorMessage = errorResponse.Message.ToString();
-                        Console.WriteLine($"Çıkarılan hata mesajı (Message): {errorMessage}");
-                    }
-                    else if (errorResponse?.error != null)
-                    {
-                        errorMessage = errorResponse.error.ToString();
-                        Console.WriteLine($"Çıkarılan hata mesajı (error): {errorMessage}");
+                        if (json.TryGetValue("message", out var message) && message != null)
+                        {
+                            errorMessage = message.ToString();
+                            _logger.LogWarning("Çıkarılan hata mesajı (message): {ErrorMessage}", errorMessage);
+                        }
+                        else if (json.TryGetValue("Message", out var messageCapital) && messageCapital != null)
+                        {
+                            errorMessage = messageCapital.ToString();
+                            _logger.LogWarning("Çıkarılan hata mesajı (Message): {ErrorMessage}", errorMessage);
+                        }
+                        else if (json.TryGetValue("error", out var error) && error != null)
+                        {
+                            errorMessage = error.ToString();
+                            _logger.LogWarning("Çıkarılan hata mesajı (error): {ErrorMessage}", errorMessage);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Hata Yanıtı İşleme Hatası: {ex.Message}");
-                    // JSON deserialize hatası durumunda ham içeriği kullan
-                    errorMessage = !string.IsNullOrEmpty(content) ? content : $"HTTP hata kodu: {statusCode}";
+                    _logger.LogError(ex, "Hata Yanıtı İşleme Hatası: {Message}", ex.Message);
                 }
-
+                
                 return new ApiResponse<T>
                 {
                     Success = false,

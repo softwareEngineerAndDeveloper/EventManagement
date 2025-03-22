@@ -1,0 +1,455 @@
+@model List<EventManagement.UI.Models.Attendee.AttendeeViewModel>
+@using EventManagement.UI.Models.Attendee
+@using EventManagement.UI.Models.Event
+
+@{
+    ViewData["Title"] = "Etkinlik Katılımcıları";
+    Layout = "_LayoutAdmin";
+    var eventModel = ViewBag.Event as EventViewModel;
+    var eventId = ViewBag.EventId as Guid?;
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Etkinlik Katılımcıları</h1>
+    <p class="mb-4">@eventModel?.Title etkinliğinin katılımcılarını yönetin.</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    @if (Model != null && !Model.Any())
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle"></i> Bu etkinliğe henüz katılımcı eklenmemiştir. Sağdaki formu kullanarak ilk katılımcıyı ekleyebilirsiniz.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Yeni Katılımcı Ekle -->
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Yeni Katılımcı Ekle</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddAttendee" asp-controller="Event" asp-area="Admin" method="post" id="addAttendeeForm">
+                        <input type="hidden" name="EventId" value="@eventId" />
+                        <input type="hidden" name="TenantId" value="@eventModel?.TenantId" />
+                        
+                        <div class="form-group mb-3">
+                            <label for="Name" class="form-label">Ad Soyad</label>
+                            <input type="text" class="form-control" id="Name" name="Name" required maxlength="100" />
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="Email" class="form-label">E-posta</label>
+                            <input type="email" class="form-control" id="Email" name="Email" required maxlength="100" />
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="Phone" class="form-label">Telefon</label>
+                            <input type="tel" class="form-control" id="Phone" name="Phone" required maxlength="20" />
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="Notes" class="form-label">Notlar</label>
+                            <textarea class="form-control" id="Notes" name="Notes" rows="3" maxlength="500"></textarea>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="SendEmailNotification" name="SendEmailNotification" value="true" checked />
+                                <label class="form-check-label" for="SendEmailNotification">
+                                    E-posta ile bilgilendir
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-success" onclick="submitAttendeeForm()">
+                            <i class="fas fa-plus"></i> Katılımcı Ekle
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Etkinlik Bilgileri</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Etkinlik</dt>
+                        <dd class="col-sm-8">@eventModel?.Title</dd>
+                        
+                        <dt class="col-sm-4">Tarih</dt>
+                        <dd class="col-sm-8">@eventModel?.StartDate.ToString("dd.MM.yyyy HH:mm")</dd>
+                        
+                        <dt class="col-sm-4">Konum</dt>
+                        <dd class="col-sm-8">@eventModel?.Location</dd>
+                        
+                        <dt class="col-sm-4">Kapasite</dt>
+                        <dd class="col-sm-8">@(eventModel?.MaxAttendees.HasValue == true ? eventModel?.MaxAttendees.Value.ToString() : "Sınırsız")</dd>
+                        
+                        <dt class="col-sm-4">Kayıt Sayısı</dt>
+                        <dd class="col-sm-8">@eventModel?.RegistrationCount</dd>
+                    </dl>
+                    
+                    <a href="@Url.Action("Details", "Event", new { area = "Admin", id = eventId })" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Etkinlik Detaylarına Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Katılımcı Listesi -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Katılımcı Listesi</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="attendeesTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Ad Soyad</th>
+                                    <th>E-posta</th>
+                                    <th>Telefon</th>
+                                    <th>Durum</th>
+                                    <th>Katıldı</th>
+                                    <th>E-posta Bildirimi</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td>@item.Email</td>
+                                            <td>@item.Phone</td>
+                                            <td>
+                                                @switch (item.Status)
+                                                {
+                                                    case AttendeeStatus.Pending:
+                                                        <span class="badge bg-warning text-dark">Beklemede</span>
+                                                        break;
+                                                    case AttendeeStatus.Confirmed:
+                                                        <span class="badge bg-success">Onaylandı</span>
+                                                        break;
+                                                    case AttendeeStatus.Cancelled:
+                                                        <span class="badge bg-danger">İptal Edildi</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.HasAttended)
+                                                {
+                                                    <span class="badge bg-success">Evet</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Hayır</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.SendEmailNotification)
+                                                {
+                                                    <span class="badge bg-success">Evet</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Hayır</span>
+                                                }
+                                            </td>
+                                            <td>@item.RegistrationDate.ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#updateModal-@item.Id">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal-@item.Id">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                
+                                                <!-- Update Status Modal -->
+                                                <div class="modal fade" id="updateModal-@item.Id" tabindex="-1" aria-labelledby="updateModalLabel-@item.Id" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="updateModalLabel-@item.Id">Katılımcı Durumunu Güncelle</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                                                            </div>
+                                                            <form asp-action="UpdateAttendeeStatus" asp-controller="Event" asp-area="Admin" method="post">
+                                                                <div class="modal-body">
+                                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                                    <input type="hidden" name="eventId" value="@eventId" />
+                                                                    
+                                                                    <div class="mb-3">
+                                                                        <label for="status-@item.Id" class="form-label">Durum</label>
+                                                                        <select class="form-select" id="status-@item.Id" name="status">
+                                                                            @if (item.Status == AttendeeStatus.Pending)
+                                                                            {
+                                                                                <option value="0" selected>Beklemede</option>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <option value="0">Beklemede</option>
+                                                                            }
+                                                                            
+                                                                            @if (item.Status == AttendeeStatus.Confirmed)
+                                                                            {
+                                                                                <option value="1" selected>Onaylandı</option>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <option value="1">Onaylandı</option>
+                                                                            }
+                                                                            
+                                                                            @if (item.Status == AttendeeStatus.Cancelled)
+                                                                            {
+                                                                                <option value="2" selected>İptal Edildi</option>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <option value="2">İptal Edildi</option>
+                                                                            }
+                                                                        </select>
+                                                                    </div>
+                                                                    
+                                                                    <div class="form-check">
+                                                                        @if (item.HasAttended)
+                                                                        {
+                                                                            <input class="form-check-input" type="checkbox" id="hasAttended-@item.Id" name="hasAttended" value="true" checked />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <input class="form-check-input" type="checkbox" id="hasAttended-@item.Id" name="hasAttended" value="true" />
+                                                                        }
+                                                                        <label class="form-check-label" for="hasAttended-@item.Id">
+                                                                            Etkinliğe Katıldı
+                                                                        </label>
+                                                                    </div>
+                                                                    
+                                                                    <div class="form-check mt-3">
+                                                                        @if (item.SendEmailNotification)
+                                                                        {
+                                                                            <input class="form-check-input" type="checkbox" id="sendEmailNotification-@item.Id" name="sendEmailNotification" value="true" checked />
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <input class="form-check-input" type="checkbox" id="sendEmailNotification-@item.Id" name="sendEmailNotification" value="true" />
+                                                                        }
+                                                                        <label class="form-check-label" for="sendEmailNotification-@item.Id">
+                                                                            E-posta ile bilgilendir
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                                    <button type="button" class="btn btn-primary" onclick="submitUpdateForm('@item.Id', '@eventId', '@item.Email')">Kaydet</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Delete Confirmation Modal -->
+                                                <div class="modal fade" id="deleteModal-@item.Id" tabindex="-1" aria-labelledby="deleteModalLabel-@item.Id" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="deleteModalLabel-@item.Id">Katılımcıyı Sil</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <p><strong>@item.Name</strong> isimli katılımcıyı silmek istediğinize emin misiniz?</p>
+                                                                <p>Bu işlem geri alınamaz!</p>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                                <form asp-action="DeleteAttendee" asp-controller="Event" asp-area="Admin" method="post" class="d-inline">
+                                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                                    <input type="hidden" name="eventId" value="@eventId" />
+                                                                    <button type="submit" class="btn btn-danger">Sil</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center">Bu etkinlik için katılımcı bulunamadı.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Sweet Alert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#attendeesTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+                    emptyTable: "Bu etkinlik için katılımcı bulunamadı.",
+                    zeroRecords: "Eşleşen katılımcı kaydı bulunamadı",
+                    info: "_TOTAL_ katılımcıdan _START_ - _END_ arası gösteriliyor",
+                    infoEmpty: "Kayıt bulunamadı",
+                    infoFiltered: "(_MAX_ kayıt arasından filtrelendi)"
+                },
+                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                responsive: true,
+                ordering: true,
+                paging: true,
+                pageLength: 10,
+                lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Tümü"]],
+                columns: [
+                    { data: "name" },
+                    { data: "email" },
+                    { data: "phone" },
+                    { data: "status" },
+                    { data: "hasAttended" },
+                    { data: "sendEmailNotification" },
+                    { data: "registrationDate" },
+                    { data: "actions", orderable: false, searchable: false }
+                ]
+            });
+            
+            // Başarılı mesajı kontrolü
+            @if (TempData["SuccessMessage"] != null && TempData["EmailSent"] != null)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Başarılı!',
+                    html: '@TempData["SuccessMessage"]<br><br><strong>E-posta bildirimi gönderildi!</strong><br>Alıcı: @TempData["EmailAddress"]<br>Konu: @TempData["EmailSubject"]',
+                    icon: 'success',
+                    confirmButtonText: 'Tamam'
+                });
+                </text>
+            }
+            
+            // E-posta zaten kayıtlı kontrolü
+            @if (TempData["EmailExists"] != null && (bool)TempData["EmailExists"] == true)
+            {
+                <text>
+                Swal.fire({
+                    title: 'Uyarı!',
+                    html: 'Bu e-posta adresi zaten etkinliğe kayıtlı:<br><strong>@TempData["ExistingEmail"]</strong>',
+                    icon: 'info',
+                    confirmButtonText: 'Tamam'
+                });
+                </text>
+            }
+        });
+        
+        // Katılımcı ekleme formunu gönderen fonksiyon
+        function submitAttendeeForm() {
+            // Form verilerini al
+            var form = $('#addAttendeeForm');
+            var email = $('#Email').val();
+            var eventId = '@eventId';
+            var sendEmail = $('#SendEmailNotification').is(':checked');
+            
+            // Önce bu e-posta etkinlikte kayıtlı mı kontrol et
+            checkEmailExists(email, eventId, function(exists) {
+                if (exists) {
+                    // E-posta zaten kayıtlı, uyarı göster
+                    Swal.fire({
+                        title: 'Uyarı!',
+                        html: 'Bu e-posta adresi zaten etkinliğe kayıtlı:<br><strong>' + email + '</strong>',
+                        icon: 'info',
+                        confirmButtonText: 'Tamam'
+                    });
+                } else {
+                    // E-posta kayıtlı değil, devam et
+                    
+                    // Eğer e-posta bildirimi işaretli ise simüle et
+                    if (sendEmail) {
+                        // Loading göster
+                        Swal.fire({
+                            title: 'E-posta gönderiliyor...',
+                            html: 'Lütfen bekleyin',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                    }
+                    
+                    // Formu normal şekilde gönder
+                    form.submit();
+                }
+            });
+        }
+        
+        // E-posta adresinin etkinlikte kayıtlı olup olmadığını kontrol eden fonksiyon
+        function checkEmailExists(email, eventId, callback) {
+            // Tabloda zaten varsa
+            var exists = false;
+            $('#attendeesTable tbody tr').each(function() {
+                var rowEmail = $(this).find('td:eq(1)').text(); // E-posta 2. sütunda
+                if (rowEmail.toLowerCase() === email.toLowerCase()) {
+                    exists = true;
+                    return false; // döngüden çık
+                }
+            });
+            
+            callback(exists);
+        }
+
+        function submitUpdateForm(id, eventId, email) {
+            // Form verilerini al
+            var form = $('#updateModal-' + id).find('form');
+            var sendEmail = $('#sendEmailNotification-' + id).is(':checked');
+            
+            // Eğer e-posta bildirimi işaretli ise simüle et
+            if (sendEmail) {
+                // Loading göster
+                Swal.fire({
+                    title: 'E-posta gönderiliyor...',
+                    html: 'Lütfen bekleyin',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+            
+            // Formu normal şekilde gönder
+            form.submit();
+        }
+    </script>
+} 

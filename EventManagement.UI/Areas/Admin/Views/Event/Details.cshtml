@@ -1,0 +1,106 @@
+@model EventManagement.UI.Models.Event.EventViewModel
+
+@{
+    ViewData["Title"] = "Etkinlik Detayları";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Etkinlik Detayları</h1>
+    <p class="mb-4">Etkinlikle ilgili detaylı bilgiler.</p>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">@Model.Title</h6>
+            <div>
+                <a asp-action="Attendees" asp-route-id="@Model.Id" class="btn btn-info">
+                    <i class="fas fa-users"></i> Katılımcılar
+                </a>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Düzenle
+                </a>
+                <a asp-action="Approvals" asp-route-id="@Model.Id" class="btn btn-success">
+                    <i class="fas fa-envelope"></i> Katılımcı Listesini E-posta ile Al
+                </a>
+                <a href="@Url.Action("Index", "Event", new { area = "Admin" })" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Listeye Dön
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h5 class="font-weight-bold">Etkinlik Bilgileri</h5>
+                        <hr />
+                        <dl class="row">
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Title)</dt>
+                            <dd class="col-sm-8">@Model.Title</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Description)</dt>
+                            <dd class="col-sm-8">@Model.Description</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Location)</dt>
+                            <dd class="col-sm-8">@Model.Location</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.StartDate)</dt>
+                            <dd class="col-sm-8">@Model.StartDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.EndDate)</dt>
+                            <dd class="col-sm-8">@Model.EndDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.MaxAttendees)</dt>
+                            <dd class="col-sm-8">@(Model.MaxAttendees.HasValue ? Model.MaxAttendees.Value.ToString() : "Sınırsız")</dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h5 class="font-weight-bold">Durum Bilgileri</h5>
+                        <hr />
+                        <dl class="row">
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Status)</dt>
+                            <dd class="col-sm-8">
+                                @switch (Model.Status)
+                                {
+                                    case EventManagement.UI.Models.Event.EventStatus.Pending:
+                                        <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                        break;
+                                    case EventManagement.UI.Models.Event.EventStatus.Approved:
+                                        <span class="badge bg-success">Onaylandı</span>
+                                        break;
+                                    case EventManagement.UI.Models.Event.EventStatus.Rejected:
+                                        <span class="badge bg-danger">Reddedildi</span>
+                                        break;
+                                    case EventManagement.UI.Models.Event.EventStatus.Cancelled:
+                                        <span class="badge bg-secondary">İptal Edildi</span>
+                                        break;
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.IsPublic)</dt>
+                            <dd class="col-sm-8">@(Model.IsPublic ? "Evet" : "Hayır")</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.IsCancelled)</dt>
+                            <dd class="col-sm-8">@(Model.IsCancelled ? "Evet" : "Hayır")</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.RegistrationCount)</dt>
+                            <dd class="col-sm-8">@Model.RegistrationCount</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.CreatorName)</dt>
+                            <dd class="col-sm-8">@Model.CreatorName</dd>
+
+                            <dt class="col-sm-4">@Html.DisplayNameFor(model => model.CreatedDate)</dt>
+                            <dd class="col-sm-8">@Model.CreatedDate.ToString("dd.MM.yyyy HH:mm")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="@Url.Action("Delete", "Event", new { area = "Admin", id = Model.Id })" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Etkinliği Sil
+            </a>
+        </div>
+    </div>
+</div> 

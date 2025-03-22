@@ -22,6 +22,11 @@
     --border-color: #e3e6f0;
     --shadow-color: rgba(58, 59, 69, 0.15);
     --input-bg: #f8f9fc;
+    --table-bg: #fff;
+    --table-head-bg: #f8f9fc;
+    --table-border: #e3e6f0;
+    --table-stripe: rgba(0, 0, 0, 0.05);
+    --badge-bg: #f8f9fc;
 }
 
 [data-theme="dark"] {
@@ -47,6 +52,11 @@
     --border-color: #495057;
     --shadow-color: rgba(0, 0, 0, 0.5);
     --input-bg: #4a4b53;
+    --table-bg: #2f3136;
+    --table-head-bg: #242529;
+    --table-border: #495057;
+    --table-stripe: rgba(255, 255, 255, 0.05);
+    --badge-bg: #4a4b53;
 }
 
 /* Temel Stiller */
@@ -216,10 +226,13 @@
 /* Topbar */
 .topbar {
     height: 4.375rem;
+    background-color: var(--topbar-bg) !important;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .topbar .nav-item .nav-link {
     position: relative;
+    color: var(--text-main);
 }
 
 .topbar .nav-item .nav-link .badge-counter {
@@ -242,6 +255,8 @@
 .topbar .dropdown .dropdown-menu {
     width: calc(100% - 1.5rem);
     right: 0.75rem;
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
 }
 
 .topbar .dropdown-list {
@@ -278,10 +293,30 @@
 
 .table {
     color: var(--text-main);
+    border-color: var(--table-border);
+    background-color: var(--table-bg);
 }
 
 .table-bordered {
-    border-color: var(--border-color);
+    border-color: var(--table-border);
+}
+
+.table th {
+    background-color: var(--table-head-bg);
+    color: var(--text-main);
+    border-color: var(--table-border);
+}
+
+.table td {
+    border-color: var(--table-border);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--table-stripe);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--table-stripe);
 }
 
 .page-link {
@@ -366,7 +401,7 @@
 }
 
 .text-gray-600 {
-    color: #858796 !important;
+    color: var(--text-main) !important;
 }
 
 .text-gray-700 {
@@ -374,7 +409,7 @@
 }
 
 .text-gray-800 {
-    color: #5a5c69 !important;
+    color: var(--text-main) !important;
 }
 
 .text-gray-900 {
@@ -497,6 +532,7 @@ input:checked + .slider:before {
     background-color: var(--footer-bg);
     color: var(--text-main);
     transition: background-color 0.3s ease;
+    border-top: 1px solid var(--border-color);
 }
 
 /* Responsive */
@@ -599,4 +635,180 @@ input:checked + .slider:before {
     .sidebar-dark.toggled #sidebarToggle::after {
         color: rgba(255, 255, 255, 0.5);
     }
+}
+
+/* Badge stilleri */
+.badge {
+    color: #fff;
+}
+
+.badge.bg-primary {
+    background-color: var(--primary) !important;
+}
+
+.badge.bg-success {
+    background-color: var(--success) !important;
+}
+
+.badge.bg-info {
+    background-color: var(--info) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--danger) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary) !important;
+}
+
+/* DataTables özelleştirmeleri */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    color: var(--text-main) !important;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    background-color: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Text Renkleri Düzeltme */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Buton ve form elemanları düzeltme */
+.form-control, .form-select {
+    background-color: var(--input-bg);
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--input-bg);
+    color: var(--text-main);
+}
+
+.input-group-text {
+    background-color: var(--table-head-bg);
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+/* İlerleme çubukları düzeltme */
+.progress {
+    background-color: var(--input-bg);
+}
+
+/* Dropdown stilleri düzeltme */
+.dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.dropdown-item {
+    color: var(--text-main);
+}
+
+.dropdown-item:hover {
+    background-color: var(--table-stripe);
+    color: var(--text-main);
+}
+
+.dropdown-header {
+    color: var(--text-muted);
+}
+
+.dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* Modal düzeltmeleri */
+.modal-content {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.modal-header, .modal-footer {
+    border-color: var(--border-color);
+}
+
+.modal-title {
+    color: var(--text-main);
+}
+
+.close {
+    color: var(--text-main);
+}
+
+/* Nav tabs düzeltme */
+.nav-tabs {
+    border-bottom-color: var(--border-color);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-main);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--primary);
+}
+
+/* Alert düzeltmeleri */
+.alert-info {
+    background-color: rgba(54, 185, 204, 0.15);
+    border-color: rgba(54, 185, 204, 0.3);
+    color: var(--info);
+}
+
+.alert-success {
+    background-color: rgba(28, 200, 138, 0.15);
+    border-color: rgba(28, 200, 138, 0.3);
+    color: var(--success);
+}
+
+.alert-warning {
+    background-color: rgba(246, 194, 62, 0.15);
+    border-color: rgba(246, 194, 62, 0.3);
+    color: var(--warning);
+}
+
+.alert-danger {
+    background-color: rgba(231, 74, 59, 0.15);
+    border-color: rgba(231, 74, 59, 0.3);
+    color: var(--danger);
+}
+
+/* DataTables ek düzeltmeler */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-main) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--table-stripe) !important;
+    color: var(--primary) !important;
+}
+
+/* Collapse bileşenleri düzeltme */
+.collapse-inner {
+    background-color: var(--card-bg);
 } 
