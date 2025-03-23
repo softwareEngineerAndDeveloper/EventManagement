@@ -34,6 +34,12 @@ Multi-Tenant Etkinlik Yönetim Sistemi, farklı organizasyonların (tenant) veri
 - [x] Katılımcı yönetimi (bilgi saklama, kayıtlarla ilişkilendirme)
 - [x] Temel raporlama (katılım istatistikleri, katılımcı listeleri)
 
+### ✅ Test Katmanı
+- [x] Birim testler (domain ve servis katmanları)
+- [x] Entegrasyon testleri (API endpoint'leri)
+- [x] Tenant izolasyon testleri (veri erişim güvenliği)
+- [x] Önbellek geçersiz kılma testleri (cache invalidation)
+
 ## 🏗️ Mimari Yapı
 
 Proje, aşağıdaki katmanlardan oluşmaktadır:
@@ -42,6 +48,7 @@ Proje, aşağıdaki katmanlardan oluşmaktadır:
 - **EventManagement.Application**: İş mantığı, DTO'lar ve servis arayüzleri
 - **EventManagement.Infrastructure**: Veritabanı işlemleri, repository'ler, kimlik doğrulama ve harici servisler
 - **EventManagement.API**: API endpoint'leri, controller'lar ve middleware'ler
+- **EventManagement.Test**: Birim testler, entegrasyon testleri ve özel test senaryoları
 - **EventManagement.UI**: (İsteğe bağlı) Web arayüzü
 
 ## 🔍 Multi-Tenant Mimari
@@ -59,6 +66,43 @@ Sistem, farklı müşterilerin (tenant) verilerini aynı uygulama altyapısı ü
 ### Veritabanı Stratejisi
 
 "Ortak veritabanı, ortak şema" yaklaşımı kullanılmıştır. Tüm kiracılar aynı veritabanını paylaşır, ancak her tabloda kiracı kimliği (TenantId) sütunu bulunur ve tüm veritabanı sorguları otomatik olarak geçerli kiracının kimliğine göre filtrelenir.
+
+### Önbellek (Cache) Stratejisi
+
+Multi-tenant uygulamanın tutarlılığını ve performansını artırmak için:
+
+1. **Tenant-Bazlı Önbellek Anahtarları**: Tüm önbellek anahtarları tenant kimliği ile birleştirilir
+2. **Seçici Önbellekleme**: Sık kullanılan, yavaş değişen veriler önbelleğe alınır
+3. **Geçersiz Kılma (Invalidation) Mekanizması**: Veri güncellendiğinde, ilgili tenant için önbellek geçersiz hale getirilir
+4. **Redis Kullanımı**: Dağıtık önbellek yönetimi için Redis kullanılır
+
+## 🧪 Test Stratejisi
+
+Test katmanımız, uygulamanın tüm yönlerini doğrulamak için dört ana kategoriye ayrılmıştır:
+
+### 1. Servis ve Domain İçin Birim Testler
+Domain nesneleri ve servis katmanının iş mantığını doğrulamaya odaklanır:
+- Entity'lerin iş kurallarının testi
+- Servis metotlarının birim testleri
+- Mock nesneler ile bağımlılıkların izolasyonu
+
+### 2. API Endpoint'leri İçin Entegrasyon Testleri
+API endpoint'lerinin bütün bir sistem olarak doğru çalıştığını kontrol eder:
+- CustomWebApplicationFactory ile in-memory test veritabanı kullanımı
+- HTTP isteklerinin ve API yanıtlarının doğruluğu
+- Doğrulama (validation) kurallarının testi
+
+### 3. Tenant İzolasyon İşlevselliği İçin Özel Testler
+Multi-tenant mimarinin kritik güvenlik özelliklerini doğrular:
+- Tenant'lar arası veri sızıntısı olmamasının testi
+- Tenant geçişlerinde veri izolasyonunun korunması
+- Middleware ve filtre mekanizmalarının doğru çalışması
+
+### 4. Önbellek Geçersiz Kılma Senaryoları İçin Testler
+Önbellek mekanizmasının multi-tenant ortamda doğru çalıştığını kontrol eder:
+- Tenant'lar arası önbellek izolasyonu
+- Veri güncellemelerinin önbelleği doğru şekilde geçersiz kılması
+- Eşzamanlı erişimlerde önbellek davranışının tutarlılığı
 
 ## 🚀 Kurulum ve Çalıştırma
 
@@ -92,7 +136,7 @@ dotnet ef database update
 1. Projeyi klonlayın:
 
 ```powershell
-git clone https://github.com/yourusername/EventManagement.git
+git clone https://github.com/softwareEngineerAndDeveloper/EventManagement.git
 cd EventManagement
 ```
 
@@ -106,7 +150,18 @@ dotnet run
 3. Swagger arayüzüne tarayıcınızdan erişin:
 
 ```
-https://localhost:5001/api-docs
+https://localhost:2025/api-docs
+```
+
+### Testleri Çalıştırma
+
+```powershell
+cd EventManagement.Test
+dotnet test
+
+# Belirli bir kategori için test çalıştırma
+dotnet test --filter "Category=Integration"
+dotnet test --filter "FullyQualifiedName~TenantIsolation"
 ```
 
 ## 🔑 Kimlik Doğrulama ve API Kullanımı
@@ -128,7 +183,8 @@ POST /api/auth/register
 POST /api/auth/login
 {
   "email": "user@example.com",
-  "password": "SecurePassword123!"
+  "password": "SecurePassword123!",
+  "subdomain": "tenant1"  // Tenant belirtmek için
 }
 ```
 
@@ -143,34 +199,44 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 API isteklerinde tenant'ı belirtmek için şu yöntemlerden birini kullanabilirsiniz:
 
 1. Alt alan adı: `https://tenant1.eventmanagement.com/api/events`
-2. HTTP header: `X-Tenant: tenant1` veya `X-Tenant-ID: 00000000-0000-0000-0000-000000000000`
+2. HTTP header: `X-Tenant-ID: 00000000-0000-0000-0000-000000000000`
 
 ### Örnek API Çağrıları
 
 #### Etkinlik Listeleme
 ```http
 GET /api/events
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 #### Yeni Etkinlik Oluşturma
 ```http
 POST /api/events
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
 {
   "title": "Geliştirici Konferansı",
   "description": "Yıllık geliştirici buluşması",
   "startDate": "2023-12-01T09:00:00",
   "endDate": "2023-12-01T17:00:00",
   "location": "İstanbul Kongre Merkezi",
-  "capacity": 250,
+  "maxAttendees": 250,
   "isPublic": true
 }
 ```
 
-#### Etkinliğe Katılımcı Kaydetme
+#### Etkinliğe Katılımcı Ekleme
 ```http
-POST /api/events/{eventId}/registrations
+POST /api/events/{eventId}/attendees
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
 {
-  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  "name": "Ahmet Yılmaz",
+  "email": "ahmet@ornek.com",
+  "phone": "5551234567"
 }
 ```
 
@@ -194,15 +260,16 @@ POST /api/events/{eventId}/registrations
 - `PUT /api/events/{id}`: Etkinlik güncelleme
 - `DELETE /api/events/{id}`: Etkinlik silme
 
-### Kayıt Yönetimi
-- `GET /api/events/{eventId}/registrations`: Etkinlik kayıtlarını listeleme
-- `POST /api/events/{eventId}/registrations`: Etkinliğe katılımcı kaydetme
-- `PUT /api/events/{eventId}/registrations/{id}`: Kayıt durumunu güncelleme
-- `DELETE /api/events/{eventId}/registrations/{id}`: Kaydı iptal etme
+### Katılımcı Yönetimi
+- `GET /api/events/{eventId}/attendees`: Etkinlik katılımcılarını listeleme
+- `POST /api/events/{eventId}/attendees`: Etkinliğe katılımcı ekleme
+- `PUT /api/events/attendees/{id}`: Katılımcı bilgilerini güncelleme
+- `DELETE /api/events/attendees/{id}`: Katılımcıyı silme
 
 ### Raporlama
 - `GET /api/events/{eventId}/statistics`: Etkinlik katılım istatistiklerini alma
 - `GET /api/reports/upcoming-events`: Yaklaşan etkinlikler raporunu alma
+- `GET /api/reports/tenant-usage`: Tenant kullanım istatistiklerini alma
 
 ## 🛠️ Teknik Detaylar
 
@@ -213,6 +280,9 @@ POST /api/events/{eventId}/registrations
 - **Redis**: Önbellekleme ve performans optimizasyonu
 - **JWT Authentication**: Güvenli API erişimi
 - **Swagger/OpenAPI**: API dokümantasyonu
+- **xUnit**: Test framework
+- **Moq**: Test için mock nesneleri oluşturma
+- **FluentAssertions**: Okunabilir test assertion'ları
 
 ### Güvenlik Özellikleri
 - Tenant izolasyonu ile veri güvenliği
@@ -220,6 +290,13 @@ POST /api/events/{eventId}/registrations
 - JWT token ile güvenli kimlik doğrulama
 - SQL enjeksiyon koruması (Entity Framework parametre temizleme)
 - Cross-Origin Resource Sharing (CORS) koruması
+- Tenant veri sızıntısı önleme mekanizmaları
+
+### Performans Optimizasyonları
+- Redis önbellekleme ile performans artışı
+- Veritabanı indeksleme stratejileri
+- Lazy-loading ve eager-loading stratejileri
+- Async/await pattern ile eşzamanlı işlemler
 
 ## 📄 Lisans
 
