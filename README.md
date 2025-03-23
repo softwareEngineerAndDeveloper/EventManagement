@@ -300,4 +300,4 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır. 
+Bu proje Fikri Daştan tarafından lisanslanmıştır. 
