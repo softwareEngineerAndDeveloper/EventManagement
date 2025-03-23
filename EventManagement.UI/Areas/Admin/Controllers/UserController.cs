@@ -32,15 +32,18 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             {
                 var token = _authService.GetTokenAsync();
                 
-                // Önce basit kullanıcı listesini al
-                var usersResult = await _apiService.GetAsync<List<UserListViewModel>>("api/users", token);
-
-                if (!usersResult.Success)
+                // Önce tüm tenant'ları al
+                var tenantsResult = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+                
+                if (!tenantsResult.Success || tenantsResult.Data == null)
                 {
-                    TempData["ErrorMessage"] = usersResult.Message ?? "Kullanıcılar getirilirken bir hata oluştu.";
-                    return View(new List<UserListViewModel>());
+                    _logger.LogWarning("Tenant listesi alınamadı: {0}", tenantsResult.Message ?? "Bilinmeyen hata");
+                    TempData["ErrorMessage"] = "Tenant listesi alınamadı. Kullanıcı bilgileri eksik olabilir.";
                 }
-
+                
+                var tenants = tenantsResult.Success ? tenantsResult.Data : new List<Models.Tenant.TenantViewModel>();
+                _logger.LogInformation("Toplam {0} tenant bulundu", tenants.Count);
+                
                 // Tüm rolleri bir kere al
                 var allRolesResult = await _apiService.GetAsync<List<RoleViewModel>>("api/roles", token);
                 var allRoles = allRolesResult.Success ? allRolesResult.Data : new List<RoleViewModel>();
@@ -48,111 +51,103 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 // Rolleri loglayalım
                 if (allRoles != null && allRoles.Any())
                 {
-                    _logger.LogInformation("Sistemde tanımlı roller: {Roles}", string.Join(", ", allRoles.Select(r => $"{r.Name} ({r.Id})")));
+                    _logger.LogInformation("Sistemde tanımlı roller: {0}", string.Join(", ", allRoles.Select(r => $"{r.Name} ({r.Id})")));
                 }
                 else
                 {
                     _logger.LogWarning("Sistemde tanımlı rol bulunamadı!");
                 }
-
-                // Her kullanıcı için ayrı ayrı detaylı bilgi al
-                var detailedUsers = new List<UserListViewModel>();
-                foreach (var basicUser in usersResult.Data)
+                
+                // Tüm kullanıcıları saklamak için liste
+                var allUsers = new List<UserListViewModel>();
+                
+                // Her tenant için kullanıcıları al
+                foreach (var tenant in tenants)
                 {
                     try
                     {
-                        // Kullanıcı detayını çek
-                        var userDetailResult = await _apiService.GetAsync<UserDetailViewModel>($"api/users/{basicUser.Id}", token);
+                        _logger.LogInformation("Tenant {0} ({1}) için kullanıcılar alınıyor...", tenant.Name, tenant.Id);
                         
-                        if (userDetailResult.Success && userDetailResult.Data != null)
+                        // X-Tenant header ile API çağrısı yapılacak
+                        var headers = new Dictionary<string, string>
                         {
-                            // UserDetailViewModel'i UserListViewModel'e dönüştür
-                            var detailedUser = new UserListViewModel
+                            { "X-Tenant", tenant.Subdomain }
+                        };
+                        
+                        var usersResult = await _apiService.GetAsyncWithHeaders<List<UserListViewModel>>("api/users", token, headers);
+                        
+                        if (usersResult.Success && usersResult.Data != null)
+                        {
+                            // Tenant bilgilerini ekle
+                            foreach (var user in usersResult.Data)
                             {
-                                Id = userDetailResult.Data.Id,
-                                FirstName = userDetailResult.Data.FirstName,
-                                LastName = userDetailResult.Data.LastName,
-                                Email = userDetailResult.Data.Email,
-                                PhoneNumber = userDetailResult.Data.PhoneNumber,
-                                IsActive = userDetailResult.Data.IsActive,
-                                TenantId = userDetailResult.Data.TenantId,
-                                TenantName = userDetailResult.Data.TenantName,
-                                CreatedDate = userDetailResult.Data.CreatedDate
-                            };
-                            
-                            // Kullanıcı rollerini ayrıca çek
-                            var userRolesResult = await _apiService.GetAsync<List<Guid>>($"api/roles/user/{basicUser.Id}", token);
-                            if (userRolesResult.Success && userRolesResult.Data != null)
-                            {
-                                _logger.LogInformation("Kullanıcı {UserId} ({Email}) için dönen rol ID'leri: {RoleIds}", 
-                                    basicUser.Id, basicUser.Email, 
-                                    userRolesResult.Data.Any() ? string.Join(", ", userRolesResult.Data) : "Rol yok");
+                                user.TenantId = tenant.Id;
+                                user.TenantName = tenant.Name;
                                 
-                                if (userRolesResult.Data.Any())
+                                // Kullanıcı rollerini ayrıca çek
+                                var userRolesResult = await _apiService.GetAsyncWithHeaders<List<Guid>>($"api/roles/user/{user.Id}", token, headers);
+                                if (userRolesResult.Success && userRolesResult.Data != null)
                                 {
-                                    var roleNames = new List<string>();
-                                    var notFoundRoles = new List<Guid>();
+                                    _logger.LogInformation("Kullanıcı {0} ({1}) için dönen rol ID'leri: {2}", 
+                                        user.Id, user.Email, 
+                                        userRolesResult.Data.Any() ? string.Join(", ", userRolesResult.Data) : "Rol yok");
                                     
-                                    foreach (var roleId in userRolesResult.Data)
+                                    if (userRolesResult.Data.Any())
                                     {
-                                        var role = allRoles.FirstOrDefault(r => r.Id == roleId);
-                                        if (role != null)
+                                        var roleNames = new List<string>();
+                                        var notFoundRoles = new List<Guid>();
+                                        
+                                        foreach (var roleId in userRolesResult.Data)
                                         {
-                                            roleNames.Add(role.Name);
-                                            _logger.LogInformation("Kullanıcı {UserId} için rol eşleşmesi bulundu: {RoleId} => {RoleName}", 
-                                                basicUser.Id, roleId, role.Name);
+                                            var role = allRoles.FirstOrDefault(r => r.Id == roleId);
+                                            if (role != null)
+                                            {
+                                                roleNames.Add(role.Name);
+                                                _logger.LogInformation("Kullanıcı {0} için rol eşleşmesi bulundu: {1} => {2}", 
+                                                    user.Id, roleId, role.Name);
+                                            }
+                                            else
+                                            {
+                                                notFoundRoles.Add(roleId);
+                                                _logger.LogWarning("Kullanıcı {0} için rol ID'si {1} sistemde tanımlı roller arasında bulunamadı!", 
+                                                    user.Id, roleId);
+                                            }
                                         }
-                                        else
-                                        {
-                                            notFoundRoles.Add(roleId);
-                                            _logger.LogWarning("Kullanıcı {UserId} için rol ID'si {RoleId} sistemde tanımlı roller arasında bulunamadı!", 
-                                                basicUser.Id, roleId);
-                                        }
+                                        
+                                        user.Roles = roleNames;
                                     }
-                                    
-                                    if (notFoundRoles.Any())
+                                    else
                                     {
-                                        _logger.LogWarning("Kullanıcı {UserId} için bulunamayan rol ID'leri: {RoleIds}", 
-                                            basicUser.Id, string.Join(", ", notFoundRoles));
+                                        user.Roles = new List<string>();
                                     }
-                                    
-                                    detailedUser.Roles = roleNames;
                                 }
                                 else
                                 {
-                                    detailedUser.Roles = new List<string>();
-                                    _logger.LogWarning("Kullanıcı {UserId} için rol bilgisi bulunamadı", basicUser.Id);
+                                    user.Roles = new List<string>();
+                                    _logger.LogWarning("Kullanıcı {0} için rol bilgisi alınamadı: {1}", 
+                                        user.Id, userRolesResult.Message ?? "Bilinmeyen hata");
                                 }
-                            }
-                            else
-                            {
-                                detailedUser.Roles = new List<string>();
-                                _logger.LogWarning("Kullanıcı {UserId} için rol bilgisi alınamadı: {ErrorMessage}", 
-                                    basicUser.Id, userRolesResult.Message ?? "Bilinmeyen hata");
+                                
+                                // Kullanıcıyı listeye ekle
+                                allUsers.Add(user);
                             }
                             
-                            detailedUsers.Add(detailedUser);
-                            
-                            // Log
-                            _logger.LogInformation("Kullanıcı {UserId} detay bilgisi alındı, rolleri: {Roles}", 
-                                detailedUser.Id, 
-                                detailedUser.Roles.Any() ? string.Join(", ", detailedUser.Roles) : "Rol yok");
+                            _logger.LogInformation("Tenant {0} için {1} kullanıcı alındı", tenant.Name, usersResult.Data.Count);
                         }
                         else
                         {
-                            // Detay bilgisi alınamazsa basit kullanıcı bilgisini kullan
-                            detailedUsers.Add(basicUser);
-                            _logger.LogWarning("Kullanıcı {UserId} için detay bilgisi alınamadı", basicUser.Id);
+                            _logger.LogWarning("Tenant {0} için kullanıcı listesi alınamadı: {1}", 
+                                tenant.Name, usersResult.Message ?? "Bilinmeyen hata");
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Kullanıcı {UserId} için detay bilgisi getirilirken hata oluştu", basicUser.Id);
-                        detailedUsers.Add(basicUser); // Hata durumunda basit kullanıcı bilgisini ekle
+                        _logger.LogError(ex, "Tenant {0} için kullanıcı listesi alınırken hata oluştu", tenant.Name);
                     }
                 }
-
-                return View(detailedUsers);
+                
+                _logger.LogInformation("Toplam {0} kullanıcı bulundu", allUsers.Count);
+                return View(allUsers);
             }
             catch (Exception ex)
             {
@@ -368,6 +363,28 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             {
                 _logger.LogError(ex, "Kullanıcı rolleri getirilirken hata oluştu. UserId: {UserId}", id);
                 return Json(new { success = false, message = "Kullanıcı rolleri alınırken bir hata oluştu." });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTenants()
+        {
+            try
+            {
+                var token = _authService.GetTokenAsync();
+                var result = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+
+                if (!result.Success)
+                {
+                    return Json(new { success = false, message = result.Message });
+                }
+
+                return Json(new { success = true, tenants = result.Data });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Tenantlar getirilirken hata oluştu");
+                return Json(new { success = false, message = "Tenantlar alınırken bir hata oluştu." });
             }
         }
     }

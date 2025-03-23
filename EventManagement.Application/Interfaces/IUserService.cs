@@ -15,5 +15,9 @@ namespace EventManagement.Application.Interfaces
         Task<ResponseDto<bool>> AssignRoleToUserAsync(AssignRoleDto assignRoleDto, Guid tenantId);
         Task<ResponseDto<List<RoleDto>>> GetRolesAsync(Guid tenantId);
         Task<ResponseDto<List<Guid>>> GetUserRolesAsync(Guid userId, Guid tenantId);
+        
+        // Dashboard istatistikleri için eklenen metodlar
+        Task<int> GetTotalUsersCountAsync();
+        Task<int> GetTotalUsersByTenantAsync(Guid tenantId);
     }
 } 

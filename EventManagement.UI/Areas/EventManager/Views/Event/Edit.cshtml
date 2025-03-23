@@ -1,0 +1,134 @@
+@model EventManagement.UI.Models.Event.UpdateEventViewModel
+@{
+    ViewData["Title"] = "Etkinlik Düzenle";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Etkinlik Düzenle</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-area="EventManager" asp-controller="Home" asp-action="Index">Panel</a></li>
+        <li class="breadcrumb-item"><a asp-area="EventManager" asp-controller="Event" asp-action="Index">Etkinlikler</a></li>
+        <li class="breadcrumb-item active">Düzenle</li>
+    </ol>
+    
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-edit me-1"></i>
+            Etkinlik Bilgileri
+        </div>
+        <div class="card-body">
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Title" class="control-label"></label>
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="Description" class="control-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="Location" class="control-label"></label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="StartDate" class="control-label"></label>
+                            <input asp-for="StartDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="EndDate" class="control-label"></label>
+                            <input asp-for="EndDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="MaxAttendees" class="control-label"></label>
+                            <input asp-for="MaxAttendees" class="form-control" type="number" min="1" />
+                            <span asp-validation-for="MaxAttendees" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group form-check mb-3">
+                            <input asp-for="IsPublic" class="form-check-input" />
+                            <label asp-for="IsPublic" class="form-check-label"></label>
+                        </div>
+                        
+                        <div class="form-group form-check mb-3">
+                            <input asp-for="IsCancelled" class="form-check-input" />
+                            <label asp-for="IsCancelled" class="form-check-label"></label>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label asp-for="Status" class="control-label"></label>
+                            <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<EventManagement.UI.Models.Event.EventStatus>()"></select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Kaydet
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Listeye Dön
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            // Tarih alanları formatlama
+            $("#StartDate").val(formatDateForInput(new Date("@Model.StartDate.ToString("yyyy-MM-ddTHH:mm:ss")")));
+            $("#EndDate").val(formatDateForInput(new Date("@Model.EndDate.ToString("yyyy-MM-ddTHH:mm:ss")")));
+            
+            function formatDateForInput(date) {
+                return date.getFullYear() + "-" +
+                    String(date.getMonth() + 1).padStart(2, '0') + "-" +
+                    String(date.getDate()).padStart(2, '0') + "T" +
+                    String(date.getHours()).padStart(2, '0') + ":" +
+                    String(date.getMinutes()).padStart(2, '0');
+            }
+            
+            // Başlangıç tarihi değiştiğinde bitiş tarihini güncelle
+            $("#StartDate").change(function() {
+                var startDate = new Date($(this).val());
+                var endDate = new Date($("#EndDate").val());
+                
+                if (endDate < startDate) {
+                    var newEndDate = new Date(startDate);
+                    newEndDate.setHours(startDate.getHours() + 2);
+                    $("#EndDate").val(formatDateForInput(newEndDate));
+                }
+            });
+        });
+    </script>
+} 

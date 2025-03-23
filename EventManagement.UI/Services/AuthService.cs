@@ -225,8 +225,25 @@ namespace EventManagement.UI.Services
             var context = _httpContextAccessor.HttpContext;
             if (context == null) return null;
 
+            // Önce Claims içinden token'ı almayı dene
             var tokenClaim = context.User.Claims.FirstOrDefault(c => c.Type == "Token");
-            return tokenClaim?.Value;
+            if (tokenClaim != null && !string.IsNullOrEmpty(tokenClaim.Value))
+            {
+                return tokenClaim.Value;
+            }
+            
+            // Claims'de bulunamazsa Session'dan almayı dene
+            var sessionToken = context.Session.GetString("AuthToken");
+            if (!string.IsNullOrEmpty(sessionToken))
+            {
+                // Session'da bulunduğunda loglama yap
+                Console.WriteLine($"Token session'dan alındı: {sessionToken.Substring(0, Math.Min(sessionToken.Length, 20))}...");
+                return sessionToken;
+            }
+            
+            // Her iki yöntemle de bulunamazsa null döndür
+            Console.WriteLine("Token bulunamadı. Claims ve Session'da mevcut değil.");
+            return null;
         }
 
         public bool IsAuthenticatedAsync()

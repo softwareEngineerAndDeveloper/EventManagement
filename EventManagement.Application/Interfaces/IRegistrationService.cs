@@ -13,5 +13,8 @@ namespace EventManagement.Application.Interfaces
         Task<ResponseDto<bool>> DeleteRegistrationAsync(Guid id, Guid tenantId);
         Task<ResponseDto<bool>> CancelRegistrationAsync(Guid id, Guid tenantId, Guid currentUserId);
         Task<ResponseDto<bool>> MarkAttendanceAsync(Guid id, bool hasAttended, Guid tenantId);
+        
+        // Dashboard istatistikleri için eklenen metod
+        Task<int> GetTotalRegistrationsCountAsync(Guid? tenantId);
     }
 } 

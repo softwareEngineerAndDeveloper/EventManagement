@@ -15,5 +15,10 @@ namespace EventManagement.Application.Interfaces
         Task<ResponseDto<bool>> ApproveEventAsync(Guid id, Guid tenantId);
         Task<ResponseDto<bool>> RejectEventAsync(Guid id, Guid tenantId);
         Task<ResponseDto<EventStatisticsDto>> GetEventStatisticsAsync(Guid id, Guid tenantId);
+        
+        // Dashboard istatistikleri için eklenen metodlar
+        Task<int> GetTotalEventsCountAsync(Guid? tenantId);
+        Task<int> GetActiveEventsCountAsync(Guid? tenantId);
+        Task<int> GetUpcomingEventsCountAsync(Guid? tenantId);
     }
 } 

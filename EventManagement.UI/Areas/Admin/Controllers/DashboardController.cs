@@ -5,6 +5,7 @@ using EventManagement.UI.Services.Interfaces;
 using EventManagement.UI.Models.Report;
 using EventManagement.UI.Models.Event;
 using EventManagement.UI.Models.Tenant;
+using EventManagement.UI.Models.Dashboard;
 
 namespace EventManagement.UI.Areas.Admin.Controllers
 {
@@ -34,7 +35,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 .Select(c => c.Value)
                 .ToList() ?? new List<string>();
                 
-            _logger.LogInformation("Admin Dashboard görüntülendi - Roller: {Roles}", string.Join(", ", roles));
+            _logger.LogInformation("Admin Dashboard görüntülendi - Roller: {0}", string.Join(", ", roles));
             
             // Bu kontrolü geçici olarak devre dışı bırakalım
             /*
@@ -56,14 +57,14 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     token = HttpContext.Session.GetString("AuthToken");
                 }
                 
-                _logger.LogInformation("Dashboard API çağrıları başlatılıyor. Token: {TokenExist}", !string.IsNullOrEmpty(token));
+                _logger.LogInformation("Dashboard API çağrıları başlatılıyor. Token: {0}", !string.IsNullOrEmpty(token));
                 
                 // Yaklaşan etkinlikler raporunu al
                 var upcomingEventsResponse = await _apiService.GetAsync<List<UpcomingEventViewModel>>("api/reports/upcoming-events", token);
                 if (upcomingEventsResponse.Success && upcomingEventsResponse.Data != null)
                 {
                     var upcomingEvents = upcomingEventsResponse.Data;
-                    _logger.LogInformation("Yaklaşan etkinlikler alındı. Toplam: {Count}", upcomingEvents.Count);
+                    _logger.LogInformation("Yaklaşan etkinlikler alındı. Toplam: {0}", upcomingEvents.Count);
 
                     // Her yaklaşan etkinlik için katılımcı sayısını güncelle
                     foreach (var upcomingEvent in upcomingEvents)
@@ -78,7 +79,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Yaklaşan etkinlik {EventId} için katılımcı sayısı alınırken hata oluştu", upcomingEvent.Id);
+                            _logger.LogError(ex, "Yaklaşan etkinlik {0} için katılımcı sayısı alınırken hata oluştu", upcomingEvent.Id);
                         }
                     }
                     
@@ -92,7 +93,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 }
                 else
                 {
-                    _logger.LogWarning("Yaklaşan etkinlikler alınamadı. Hata: {Message}", upcomingEventsResponse.Message);
+                    _logger.LogWarning("Yaklaşan etkinlikler alınamadı. Hata: {0}", upcomingEventsResponse.Message);
                     ViewBag.UpcomingEvents = new UpcomingEventsReportViewModel 
                     { 
                         Events = new List<UpcomingEventViewModel>(), 
@@ -110,19 +111,19 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                     if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
                     {
-                        _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
+                        _logger.LogWarning("Tenant listesi alınamadı: {0}", tenantsResponse.Message);
                         ViewBag.RecentEvents = new List<EventViewModel>();
                     }
                     else
                     {
-                        _logger.LogInformation("Tenant listesi alındı. Toplam tenant sayısı: {Count}", tenantsResponse.Data.Count);
+                        _logger.LogInformation("Tenant listesi alındı. Toplam tenant sayısı: {0}", tenantsResponse.Data.Count);
                         
                         // Tüm tenant'lar için etkinlikleri topla
                         var allEvents = new List<EventViewModel>();
                         
                         foreach (var tenant in tenantsResponse.Data)
                         {
-                            _logger.LogInformation("Tenant: {TenantName} (ID: {TenantId}) için etkinlikler alınıyor...", tenant.Name, tenant.Id);
+                            _logger.LogInformation("Tenant: {0} (ID: {1}) için etkinlikler alınıyor...", tenant.Name, tenant.Id);
                             
                             // Her tenant için "X-Tenant" header'ını değiştirerek API çağrısı yap
                             var headers = new Dictionary<string, string>
@@ -134,7 +135,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                             
                             if (eventsResponse.Success && eventsResponse.Data != null && eventsResponse.Data.Any())
                             {
-                                _logger.LogInformation("Tenant {TenantName} için {Count} etkinlik bulundu", tenant.Name, eventsResponse.Data.Count);
+                                _logger.LogInformation("Tenant {0} için {1} etkinlik bulundu", tenant.Name, eventsResponse.Data.Count);
                                 
                                 // Etkinlikler listesine tenant bilgisiyle birlikte ekle
                                 foreach (var eventItem in eventsResponse.Data)
@@ -146,12 +147,12 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                             }
                             else
                             {
-                                _logger.LogWarning("Tenant {TenantName} için etkinlik bulunamadı veya hata oluştu: {Message}", 
+                                _logger.LogWarning("Tenant {0} için etkinlik bulunamadı veya hata oluştu: {1}", 
                                     tenant.Name, eventsResponse.Message);
                             }
                         }
                         
-                        _logger.LogInformation("Tüm tenant'lardan toplam {Count} etkinlik alındı", allEvents.Count);
+                        _logger.LogInformation("Tüm tenant'lardan toplam {0} etkinlik alındı", allEvents.Count);
                         
                         // Duruma göre sınıf ata
                         foreach (var eventItem in allEvents)
@@ -224,22 +225,22 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 {
                     _logger.LogInformation("Tenant listesi alınıyor...");
                     var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                    _logger.LogInformation("Tenant listesi API yanıtı: Başarılı={Success}, Mesaj={Message}",
+                    _logger.LogInformation("Tenant listesi API yanıtı: Başarılı={0}, Mesaj={1}",
                         tenantsResponse.Success, tenantsResponse.Message);
                     
                     if (tenantsResponse.Success && tenantsResponse.Data != null)
                     {
                         var tenants = tenantsResponse.Data;
-                        _logger.LogInformation("Tenant listesi alındı. Toplam tenant sayısı: {Count}", tenants.Count);
+                        _logger.LogInformation("Tenant listesi alındı. Toplam tenant sayısı: {0}", tenants.Count);
                         
                         // Sadece aktif tenantları filtrele
                         var activeTenants = tenants.Where(t => t.IsActive).ToList();
-                        _logger.LogInformation("Aktif tenant sayısı: {Count}", activeTenants.Count);
+                        _logger.LogInformation("Aktif tenant sayısı: {0}", activeTenants.Count);
                         ViewBag.ActiveTenants = activeTenants;
                     }
                     else
                     {
-                        _logger.LogWarning("Tenant listesi alınamadı. Hata: {Message}", tenantsResponse.Message);
+                        _logger.LogWarning("Tenant listesi alınamadı. Hata: {0}", tenantsResponse.Message);
                         ViewBag.ActiveTenants = new List<TenantViewModel>();
                     }
                 }
@@ -253,7 +254,8 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 var hasUpcomingEvents = ViewBag.UpcomingEvents != null;
                 var hasRecentEvents = ViewBag.RecentEvents != null;
                 var hasActiveTenants = ViewBag.ActiveTenants != null;
-                _logger.LogInformation($"Dashboard ViewBag değerleri: UpcomingEvents={hasUpcomingEvents}, RecentEvents={hasRecentEvents}, ActiveTenants={hasActiveTenants}");
+                _logger.LogInformation("Dashboard ViewBag değerleri: UpcomingEvents={0}, RecentEvents={1}, ActiveTenants={2}",
+                    new object[] { hasUpcomingEvents, hasRecentEvents, hasActiveTenants });
             }
             catch (Exception ex)
             {

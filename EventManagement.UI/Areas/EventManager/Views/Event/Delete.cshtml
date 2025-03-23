@@ -1,0 +1,85 @@
+@model EventManagement.UI.Models.Event.EventViewModel
+@{
+    ViewData["Title"] = "Etkinlik Silme";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Etkinlik Sil</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-area="EventManager" asp-controller="Home" asp-action="Index">Panel</a></li>
+        <li class="breadcrumb-item"><a asp-area="EventManager" asp-controller="Event" asp-action="Index">Etkinlikler</a></li>
+        <li class="breadcrumb-item active">Sil</li>
+    </ol>
+    
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Dikkat: Bu işlem geri alınamaz!
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <h5><strong>@Model.Title</strong> isimli etkinliği silmek istediğinize emin misiniz?</h5>
+                <p>Bu işlem geri alınamaz ve etkinliğe ait tüm veriler silinecektir.</p>
+                @if (Model.RegistrationCount > 0)
+                {
+                    <p class="text-danger">
+                        <strong>Uyarı:</strong> Bu etkinliğe ait <strong>@Model.RegistrationCount</strong> katılımcı kaydı bulunmaktadır. 
+                        Etkinliği sildiğinizde tüm katılımcı kayıtları silinecektir.
+                    </p>
+                }
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <th style="width: 150px;">@Html.DisplayNameFor(model => model.Title)</th>
+                            <td>@Model.Title</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.StartDate)</th>
+                            <td>@Model.StartDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.EndDate)</th>
+                            <td>@Model.EndDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.Location)</th>
+                            <td>@Model.Location</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.RegistrationCount)</th>
+                            <td>@Model.RegistrationCount</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.Status)</th>
+                            <td><span class="badge @Model.StatusClass">@Model.StatusText</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <form asp-action="Delete" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Etkinliği Sil
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> İptal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

@@ -151,8 +151,11 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="tenantName" class="form-label">Tenant</label>
-                                    <input type="text" class="form-control" id="tenantName" disabled>
+                                    <label for="tenantSelect" class="form-label">Tenant</label>
+                                    <select class="form-select" id="tenantSelect" name="TenantId">
+                                        <option value="">Tenant Seçiniz</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="tenantFeedback"></div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="form-check form-switch mt-4">
@@ -234,6 +237,9 @@
                 }
             });
             
+            // Tenant listesini yükle
+            loadTenants();
+            
             // Kullanıcı düzenleme
             $('.btn-edit-user').on('click', function() {
                 const userId = $(this).data('id');
@@ -250,15 +256,17 @@
                 // Kullanıcı ID'sini temizle
                 $('#userId').val('');
                 
-                // Create butonunu göster, Update butonunu gizle
+                // Butonları göster/gizle
                 $('#btnCreateUser').show();
                 $('#btnUpdateUser').hide();
                 
-                // Yeni kullanıcı için rolleri getir
-                loadAvailableRoles();
-                
                 // Modalı aç
                 $('#userModal').modal('show');
+                
+                // Roller sekmesine geçildiğinde rolleri yükle
+                $('#roles-tab').on('shown.bs.tab', function() {
+                    loadRoles();
+                });
             });
             
             // Kullanıcı silme
@@ -423,7 +431,7 @@
                         $('#lastName').val(user.lastName);
                         $('#email').val(user.email);
                         $('#phoneNumber').val(user.phoneNumber);
-                        $('#tenantName').val(user.tenantName);
+                        $('#tenantSelect').val(user.tenantId);
                         $('#isActive').prop('checked', user.isActive);
                         $('#createdDate').val(formatDate(user.createdDate));
                         $('#updatedDate').val(formatDate(user.updatedDate));
@@ -591,34 +599,26 @@
             });
         }
 
-        function loadAvailableRoles() {
+        function loadTenants() {
             $.ajax({
-                url: '@Url.Action("GetRoles", "User", new { area = "Admin" })',
+                url: '@Url.Action("GetTenants", "User")',
                 type: 'GET',
+                dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        let html = '';
-                        if (response.roles && response.roles.length > 0) {
-                            html += '<div class="row">';
-                            response.roles.forEach(function(role) {
-                                html += '<div class="col-md-6 mb-2">';
-                                html += '<div class="form-check">';
-                                html += `<input class="form-check-input role-checkbox" type="checkbox" id="role_${role.id}" value="${role.id}">`;
-                                html += `<label class="form-check-label" for="role_${role.id}">${role.name}</label>`;
-                                html += '</div>';
-                                html += '</div>';
-                            });
-                            html += '</div>';
-                        } else {
-                            html = '<div class="alert alert-warning">Roller bulunamadı!</div>';
-                        }
-                        $('#rolesList').html(html);
+                        const tenantSelect = $('#tenantSelect');
+                        tenantSelect.empty();
+                        tenantSelect.append('<option value="">Tenant Seçiniz</option>');
+                        
+                        response.tenants.forEach(function(tenant) {
+                            tenantSelect.append(`<option value="${tenant.id}">${tenant.name}</option>`);
+                        });
                     } else {
-                        $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                        console.error('Tenant listesi yüklenemedi:', response.message);
                     }
                 },
-                error: function(xhr, status, error) {
-                    $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                error: function(error) {
+                    console.error('Tenant listesi alınırken hata oluştu:', error);
                 }
             });
         }

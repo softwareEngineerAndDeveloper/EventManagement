@@ -104,6 +104,40 @@ namespace EventManagement.UI.Controllers.Account
                     
                     return RedirectToAction("Index", "Dashboard", new { area = "Manager" });
                 }
+                else if (model.Email == "eventmanager@etkinlikyonetimi.com" && model.Password == "EventManager123!")
+                {
+                    // EventManager hesabı için test giriş
+                    var testToken = "test-token-for-eventmanager-" + DateTime.Now.Ticks;
+                    
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                        new Claim(ClaimTypes.Email, model.Email),
+                        new Claim("Token", testToken),
+                        new Claim("TenantId", Guid.NewGuid().ToString()),
+                        new Claim(ClaimTypes.Role, "EventManager")
+                    };
+
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = model.RememberMe,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                    };
+
+                    // Token'ı önce HttpContext Session'a kaydet
+                    HttpContext.Session.SetString("AuthToken", testToken);
+                    _logger.LogInformation("EventManager için test token session'a kaydedildi: {TokenStart}...", 
+                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
+
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProperties);
+                    
+                    _logger.LogInformation("EventManager kullanıcısı başarıyla giriş yaptı ve EventManager alanına yönlendiriliyor");
+                    return RedirectToAction("Index", "Home", new { area = "EventManager" });
+                }
                 else if (model.Email == "attendee@etkinlikyonetimi.com" && model.Password == "Attendee123!")
                 {
                     // Attendee hesabı için test giriş
@@ -169,6 +203,12 @@ namespace EventManagement.UI.Controllers.Account
                 {
                     _logger.LogInformation("Admin rolü tespit edildi. Admin Dashboard'a yönlendiriliyor.");
                     return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                }
+                // EventManager rolü varsa, EventManager dashboard'una yönlendir
+                else if (roles.Contains("EventManager"))
+                {
+                    _logger.LogInformation("EventManager rolü tespit edildi. EventManager Dashboard'a yönlendiriliyor.");
+                    return RedirectToAction("Index", "Home", new { area = "EventManager" });
                 }
                 // Manager rolü varsa, manager dashboard'una yönlendir
                 else if (roles.Contains("Manager"))

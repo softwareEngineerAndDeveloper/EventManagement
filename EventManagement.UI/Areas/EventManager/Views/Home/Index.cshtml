@@ -1,0 +1,157 @@
+@{
+    ViewData["Title"] = "EventManager Panel";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Panel</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">Toplam Etkinlik</div>
+                            <div class="display-6">@(ViewBag.DashboardStats?.TotalEvents ?? 0)</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-calendar-alt fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-area="EventManager" asp-controller="Event" asp-action="Index">Tüm Etkinlikler</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">Aktif Etkinlikler</div>
+                            <div class="display-6">@(ViewBag.DashboardStats?.ActiveEvents ?? 0)</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-calendar-check fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-area="EventManager" asp-controller="Event" asp-action="Index">Aktif Etkinlikler</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">Yaklaşan Etkinlikler</div>
+                            <div class="display-6">@(ViewBag.DashboardStats?.UpcomingEvents ?? 0)</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-calendar-week fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-area="EventManager" asp-controller="Event" asp-action="Index">Yaklaşan Etkinlikler</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">Toplam Katılımcı</div>
+                            <div class="display-6">@(ViewBag.DashboardStats?.TotalRegistrations ?? 0)</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-users fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-area="EventManager" asp-controller="Registration" asp-action="Index">Tüm Katılımcılar</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-calendar-day me-1"></i>
+                        Yaklaşan Etkinlikler
+                    </div>
+                    <a asp-area="EventManager" asp-controller="Event" asp-action="Create" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Yeni Etkinlik
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Etkinlik Adı</th>
+                                    <th>Başlangıç</th>
+                                    <th>Bitiş</th>
+                                    <th>Konum</th>
+                                    <th>Katılımcı</th>
+                                    <th>Durum</th>
+                                    <th style="width: 150px;">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.UpcomingEvents != null && ViewBag.UpcomingEvents.Count > 0)
+                                {
+                                    @foreach (var item in ViewBag.UpcomingEvents)
+                                    {
+                                        <tr>
+                                            <td>@item.title</td>
+                                            <td>@(DateTime.Parse(item.startDate.ToString()).ToString("dd.MM.yyyy HH:mm"))</td>
+                                            <td>@(DateTime.Parse(item.endDate.ToString()).ToString("dd.MM.yyyy HH:mm"))</td>
+                                            <td>@item.location</td>
+                                            <td>@item.registrationCount / @(item.maxAttendees ?? "∞")</td>
+                                            <td>
+                                                <span class="badge @item.statusClass">@item.statusText</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a asp-area="EventManager" asp-controller="Event" asp-action="Details" asp-route-id="@item.id" class="btn btn-info btn-sm">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a asp-area="EventManager" asp-controller="Event" asp-action="Edit" asp-route-id="@item.id" class="btn btn-warning btn-sm">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center">Yaklaşan etkinlik bulunamadı.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

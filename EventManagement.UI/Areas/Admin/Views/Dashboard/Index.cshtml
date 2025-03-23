@@ -29,15 +29,27 @@
         </div>
     </div>
 
-    <!-- Toplam Kullanıcı Kartı -->
+    <!-- Toplam Katılımcı Kartı -->
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card border-left-success shadow h-100 py-2">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Toplam Kullanıcı</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">215</div>
+                            Toplam Katılımcı</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @{
+                                int totalAttendees = 0;
+                                if (ViewBag.UpcomingEvents != null && ViewBag.UpcomingEvents.Events != null)
+                                {
+                                    foreach (var evt in ViewBag.UpcomingEvents.Events)
+                                    {
+                                        totalAttendees += evt.RegistrationCount;
+                                    }
+                                }
+                            }
+                            @totalAttendees
+                        </div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -56,29 +68,11 @@
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                             Aktif Tenant</div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            @(ViewBag.ActiveTenants != null ? ViewBag.ActiveTenants.Count : 0)
+                            @(ViewBag.ActiveTenants?.Count ?? 0)
                         </div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-building fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toplam Kayıt Kartı -->
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-warning shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                            Toplam Kayıt</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">524</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -101,12 +95,12 @@
                          aria-labelledby="dropdownMenuLink">
                         <div class="dropdown-header">İşlemler:</div>
                         <a class="dropdown-item" href="#" id="refreshUpcoming">Yenile</a>
-                        <a class="dropdown-item" href="#" id="exportUpcoming">Dışa Aktar</a>
+                        <a class="dropdown-item" asp-area="Admin" asp-controller="Reports" asp-action="UpcomingEvents">Dışa Aktar</a>
                     </div>
                 </div>
             </div>
             <div class="card-body">
-                @if (ViewBag.UpcomingEvents?.Events != null && ViewBag.UpcomingEvents.Events.Count > 0)
+                @if (ViewBag.UpcomingEvents != null && ViewBag.UpcomingEvents.Events != null && ViewBag.UpcomingEvents.Events.Count > 0)
                 {
                     <small class="text-muted d-block mb-3">Rapor tarihi: @ViewBag.UpcomingEvents.GeneratedAt.ToString("dd.MM.yyyy HH:mm")</small>
                     
@@ -123,16 +117,6 @@
                             <tbody>
                                 @foreach (var item in ViewBag.UpcomingEvents.Events)
                                 {
-                                    string progressColorClass = "bg-success";
-                                    if (item.CapacityPercentage > 90)
-                                    {
-                                        progressColorClass = "bg-danger";
-                                    }
-                                    else if (item.CapacityPercentage > 70)
-                                    {
-                                        progressColorClass = "bg-warning";
-                                    }
-                                    
                                     <tr>
                                         <td>
                                             <span class="d-block font-weight-bold">@item.Title</span>
@@ -150,14 +134,32 @@
                                             }
                                         </td>
                                         <td>
+                                            @{
+                                                var capacityPercentage = 0;
+                                                if (item.MaxAttendees.HasValue && item.MaxAttendees.Value > 0)
+                                                {
+                                                    capacityPercentage = (int)(((double)item.RegistrationCount / item.MaxAttendees.Value) * 100);
+                                                }
+                                                
+                                                string progressColorClass = "bg-success";
+                                                if (capacityPercentage > 90)
+                                                {
+                                                    progressColorClass = "bg-danger";
+                                                }
+                                                else if (capacityPercentage > 70)
+                                                {
+                                                    progressColorClass = "bg-warning";
+                                                }
+                                            }
+                                            
                                             <div class="d-flex align-items-center">
                                                 <div class="progress progress-sm flex-grow-1 mr-2" style="height: 8px;">
                                                     <div class="progress-bar @progressColorClass" role="progressbar" 
-                                                         style="width: @item.CapacityPercentage%;" 
-                                                         aria-valuenow="@item.CapacityPercentage" aria-valuemin="0" aria-valuemax="100">
+                                                          style="width: @capacityPercentage%;" 
+                                                          aria-valuenow="@capacityPercentage" aria-valuemin="0" aria-valuemax="100">
                                                     </div>
                                                 </div>
-                                                <span class="small ml-2">@Math.Round(item.CapacityPercentage)%</span>
+                                                <span class="small ml-2">@Math.Round((double)capacityPercentage)%</span>
                                             </div>
                                             <small class="text-muted">@item.RegistrationCount / @(item.MaxAttendees?.ToString() ?? "∞")</small>
                                         </td>
@@ -193,8 +195,8 @@
                         aria-labelledby="dropdownMenuLink">
                         <div class="dropdown-header">İşlemler:</div>
                         <a class="dropdown-item" href="#" id="refreshEvents">Yenile</a>
-                        <a class="dropdown-item" href="#">Tümünü Göster</a>
-                        <a class="dropdown-item" href="#">Yeni Etkinlik Ekle</a>
+                        <a class="dropdown-item" asp-area="Admin" asp-controller="Event" asp-action="Index">Tümünü Göster</a>
+                        <a class="dropdown-item" asp-area="Admin" asp-controller="Event" asp-action="Create">Yeni Etkinlik Ekle</a>
                     </div>
                 </div>
             </div>
@@ -207,7 +209,7 @@
                                 <th>Başlangıç</th>
                                 <th>Bitiş</th>
                                 <th>Konum</th>
-                                <th>Kapasite</th>
+                                <th>Tenant</th>
                                 <th>Durum</th>
                             </tr>
                         </thead>
@@ -221,7 +223,7 @@
                                         <td>@item.StartDate.ToString("dd.MM.yyyy")</td>
                                         <td>@item.EndDate.ToString("dd.MM.yyyy")</td>
                                         <td>@item.Location</td>
-                                        <td>@item.MaxAttendees</td>
+                                        <td>@item.TenantName</td>
                                         <td><span class="badge bg-@item.StatusClass">@item.StatusText</span></td>
                                     </tr>
                                 }
@@ -253,7 +255,7 @@
                         aria-labelledby="dropdownMenuLink">
                         <div class="dropdown-header">İşlemler:</div>
                         <a class="dropdown-item" href="#" id="refreshTenants">Yenile</a>
-                        <a class="dropdown-item" href="#">Tüm Tenantları Göster</a>
+                        <a class="dropdown-item" asp-area="Admin" asp-controller="Tenant" asp-action="Index">Tüm Tenantları Göster</a>
                     </div>
                 </div>
             </div>
@@ -368,6 +370,12 @@
             $('#refreshTenants').on('click', function(e) {
                 e.preventDefault();
                 console.log("Tenantlar yenileniyor");
+                location.reload();
+            });
+            
+            $('#refreshUpcoming').on('click', function(e) {
+                e.preventDefault();
+                console.log("Yaklaşan etkinlikler yenileniyor");
                 location.reload();
             });
         });

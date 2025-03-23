@@ -15,11 +15,11 @@
         <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="Admin" asp-controller="Dashboard" asp-action="Index" id="brandLink">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <img src="https://www.cottgroup.com/images/cott/cottgroup-logo.svg" alt="Logo" style="width: 100px; height: 130px;">
+                    <i class="fas fa-calendar-check"></i>
                 </div>
-                <!-- <div class="sidebar-brand-text mx-3">Yönetim Paneli</div>-->
+                <div class="sidebar-brand-text mx-3">Event Admin</div>
             </a>
 
             <!-- Divider -->
@@ -41,56 +41,73 @@
                 Yönetim
             </div>
 
-            <!-- Nav Item - Users -->
+            <!-- Nav Item - Kullanıcı Yönetimi -->
             <li class="nav-item">
-                <a class="nav-link" asp-area="Admin" asp-controller="User" asp-action="Index">
+                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseUsers"
+                    aria-expanded="true" aria-controls="collapseUsers">
                     <i class="fas fa-fw fa-users"></i>
-                    <span>Kullanıcılar</span>
+                    <span>Kullanıcı Yönetimi</span>
                 </a>
+                <div id="collapseUsers" class="collapse" aria-labelledby="headingUsers" data-bs-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Kullanıcı İşlemleri:</h6>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="User" asp-action="Index">Tüm Kullanıcılar</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="User" asp-action="Create">Yeni Kullanıcı</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Role" asp-action="Index">Roller</a>
+                    </div>
+                </div>
             </li>
 
-            <!-- Nav Item - Tenants -->
+            <!-- Nav Item - Tenant Yönetimi -->
             <li class="nav-item">
-                <a class="nav-link" asp-area="Admin" asp-controller="Tenant" asp-action="Index">
+                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseTenants"
+                    aria-expanded="true" aria-controls="collapseTenants">
                     <i class="fas fa-fw fa-building"></i>
-                    <span>Tenant'lar</span>
+                    <span>Tenant Yönetimi</span>
                 </a>
+                <div id="collapseTenants" class="collapse" aria-labelledby="headingTenants" data-bs-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tenant İşlemleri:</h6>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Tenant" asp-action="Index">Tüm Tenantlar</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Tenant" asp-action="Create">Yeni Tenant</a>
+                    </div>
+                </div>
             </li>
 
-            <!-- Nav Item - Events -->
+            <!-- Nav Item - Etkinlik Yönetimi -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseEvents"
-                   aria-expanded="true" aria-controls="collapseEvents">
-                    <i class="fas fa-fw fa-calendar"></i>
-                    <span>Etkinlikler</span>
+                    aria-expanded="true" aria-controls="collapseEvents">
+                    <i class="fas fa-fw fa-calendar-alt"></i>
+                    <span>Etkinlik Yönetimi</span>
                 </a>
-                <div id="collapseEvents" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                <div id="collapseEvents" class="collapse" aria-labelledby="headingEvents" data-bs-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Etkinlik Yönetimi:</h6>
+                        <h6 class="collapse-header">Etkinlik İşlemleri:</h6>
                         <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Index">Tüm Etkinlikler</a>
-                        <a class="collapse-item" asp-area="Admin" asp-controller="Event" asp-action="Create">Yeni Etkinlik</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Attendee" asp-action="Index">Katılımcılar</a>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="EventType" asp-action="Index">Etkinlik Türleri</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Raporlar -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseReports"
+                    aria-expanded="true" aria-controls="collapseReports">
+                    <i class="fas fa-fw fa-chart-area"></i>
+                    <span>Raporlar</span>
+                </a>
+                <div id="collapseReports" class="collapse" aria-labelledby="headingReports" data-bs-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Rapor İşlemleri:</h6>
+                        <a class="collapse-item" asp-area="Admin" asp-controller="Report" asp-action="Index">Etkinlik Raporları</a>
                     </div>
                 </div>
             </li>
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Raporlar
-            </div>
-
-            <!-- Nav Item - Reports -->
-            <li class="nav-item">
-                <a class="nav-link" asp-area="Admin" asp-controller="Report" asp-action="Index">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Raporlar</span>
-                </a>
-            </li>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider d-none d-md-block">
 
             <!-- Sidebar Toggler (Sidebar) -->
             <div class="text-center d-none d-md-inline">
