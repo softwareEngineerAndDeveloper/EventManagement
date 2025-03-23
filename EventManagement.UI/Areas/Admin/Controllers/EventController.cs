@@ -15,35 +15,106 @@ namespace EventManagement.UI.Areas.Admin.Controllers
     public class EventController : Controller
     {
         private readonly IApiService _apiService;
+        private readonly IAuthService _authService;
         private readonly ILogger<EventController> _logger;
         private readonly IConfiguration _configuration;
 
-        public EventController(IApiService apiService, ILogger<EventController> logger, IConfiguration configuration)
+        public EventController(IApiService apiService, IAuthService authService, ILogger<EventController> logger, IConfiguration configuration)
         {
             _apiService = apiService;
+            _authService = authService;
             _logger = logger;
             _configuration = configuration;
         }
 
+        private async Task<bool> TryGetTenantEvents(string token, TenantViewModel tenant, List<EventViewModel> eventsCollection)
+        {
+            try
+            {
+                _logger.LogInformation("Tenant: {TenantName} (ID: {TenantId}) için etkinlikler alınıyor...", tenant.Name, tenant.Id);
+                
+                // Her tenant için "X-Tenant" header'ını belirle
+                var headers = new Dictionary<string, string>
+                {
+                    { "X-Tenant", tenant.Subdomain }
+                };
+                
+                var eventsResponse = await _apiService.GetAsyncWithHeaders<List<EventViewModel>>("api/events", token, headers);
+                
+                if (eventsResponse.Success && eventsResponse.Data != null && eventsResponse.Data.Any())
+                {
+                    _logger.LogInformation("Tenant {TenantName} için {Count} etkinlik bulundu", tenant.Name, eventsResponse.Data.Count);
+                    
+                    // Etkinlikler listesine tenant bilgisiyle birlikte ekle
+                    foreach (var eventItem in eventsResponse.Data)
+                    {
+                        eventItem.TenantName = tenant.Name;
+                        eventItem.TenantSubdomain = tenant.Subdomain;
+                        eventsCollection.Add(eventItem);
+                    }
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Tenant {TenantName} için etkinlik bulunamadı veya hata oluştu: {Message}", 
+                        tenant.Name, eventsResponse.Message);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Tenant {TenantName} için etkinlikler alınırken hata oluştu", tenant.Name);
+                return false;
+            }
+        }
+        
         public async Task<IActionResult> Index()
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                _logger.LogInformation("Etkinlikler API'den alınıyor... Token: {HasToken}", !string.IsNullOrEmpty(token));
+                _logger.LogInformation("Etkinlikler API'den alınıyor... Token mevcut: {HasToken}", true);
                 
-                // Önce tenant listesini al
+                // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                 
-                if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı veya boş: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Tenant listesi alınamadı: " + tenantsResponse.Message;
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    return View(new List<EventViewModel>());
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                     return View(new List<EventViewModel>());
                 }
                 
@@ -51,37 +122,20 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 
                 // Tüm tenant'lar için etkinlikleri topla
                 var allEvents = new List<EventViewModel>();
+                int successCount = 0;
+                int failCount = 0;
                 
                 foreach (var tenant in tenantsResponse.Data)
                 {
-                    _logger.LogInformation("Tenant: {TenantName} (ID: {TenantId}) için etkinlikler alınıyor...", tenant.Name, tenant.Id);
-                    
-                    // Her tenant için "X-Tenant" header'ını değiştirerek API çağrısı yap
-                    var headers = new Dictionary<string, string>
-                    {
-                        { "X-Tenant", tenant.Subdomain }
-                    };
-                    
-                    var eventsResponse = await _apiService.GetAsyncWithHeaders<List<EventViewModel>>("api/events", token, headers);
-                    
-                    if (eventsResponse.Success && eventsResponse.Data != null && eventsResponse.Data.Any())
-                    {
-                        _logger.LogInformation("Tenant {TenantName} için {Count} etkinlik bulundu", tenant.Name, eventsResponse.Data.Count);
-                        
-                        // Etkinlikler listesine tenant bilgisiyle birlikte ekle
-                        foreach (var eventItem in eventsResponse.Data)
-                        {
-                            eventItem.TenantName = tenant.Name;
-                            eventItem.TenantSubdomain = tenant.Subdomain;
-                            allEvents.Add(eventItem);
-                        }
-                    }
+                    bool success = await TryGetTenantEvents(token, tenant, allEvents);
+                    if (success) 
+                        successCount++;
                     else
-                    {
-                        _logger.LogWarning("Tenant {TenantName} için etkinlik bulunamadı veya hata oluştu: {Message}", 
-                            tenant.Name, eventsResponse.Message);
-                    }
+                        failCount++;
                 }
+                
+                _logger.LogInformation("Etkinlik alma işlemi tamamlandı. Başarılı tenant sayısı: {SuccessCount}, Başarısız: {FailCount}", 
+                    successCount, failCount);
                 
                 if (allEvents.Any())
                 {
@@ -136,7 +190,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                         }
                     }
                     
-                    // Her etkinlik için katılımcı sayısını al ve güncelle
+                    // Her etkinlik için katılımcı sayısını alırken hata yönetimini geliştir
                     foreach (var eventItem in allEvents)
                     {
                         try
@@ -150,12 +204,18 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                             if (attendeesResponse.Success && attendeesResponse.Data != null)
                             {
                                 eventItem.RegistrationCount = attendeesResponse.Data.Count;
-                                _logger.LogInformation("Etkinlik {EventId} için katılımcı sayısı: {Count}", eventItem.Id, eventItem.RegistrationCount);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Etkinlik {EventId} için katılımcı sayısı alınamadı: {Message}", 
+                                    eventItem.Id, attendeesResponse.Message);
+                                eventItem.RegistrationCount = 0;
                             }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Etkinlik {EventId} için katılımcı sayısı alınırken hata oluştu", eventItem.Id);
+                            eventItem.RegistrationCount = 0;
                         }
                     }
                     
@@ -163,15 +223,14 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 }
                 else
                 {
-                    _logger.LogWarning("Hiçbir tenant için etkinlik bulunamadı");
-                    TempData["ErrorMessage"] = "Görüntülenecek etkinlik bulunamadı.";
+                    _logger.LogInformation("Hiç etkinlik bulunamadı");
                     return View(new List<EventViewModel>());
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Etkinlikler getirilirken hata oluştu: {Message}", ex.Message);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                _logger.LogError(ex, "Etkinlikler listelenirken hata oluştu");
+                TempData["ErrorMessage"] = "Etkinlikler listelenirken beklenmeyen bir hata oluştu: " + ex.Message;
                 return View(new List<EventViewModel>());
             }
         }
@@ -181,18 +240,47 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Önce tüm tenant'lar için etkinlikleri arayalım
+                // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Tenant listesi alınamadı: " + tenantsResponse.Message;
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                     return RedirectToAction(nameof(Index));
                 }
                 
@@ -228,10 +316,17 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                                 eventData.RegistrationCount = attendeesResponse.Data.Count;
                                 _logger.LogInformation("Etkinlik {EventId} için katılımcı sayısı güncellendi: {Count}", id, eventData.RegistrationCount);
                             }
+                            else
+                            {
+                                _logger.LogWarning("Etkinlik {EventId} için katılımcı sayısı alınamadı: {Message}", 
+                                    id, attendeesResponse.Message);
+                                eventData.RegistrationCount = 0;
+                            }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Etkinlik {EventId} için katılımcı sayısı alınırken hata oluştu", id);
+                            eventData.RegistrationCount = 0;
                         }
                         
                         break; // Etkinliği bulduk, döngüyü sonlandır
@@ -249,7 +344,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik detayları getirilirken hata oluştu. ID: {Id}", id);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                TempData["ErrorMessage"] = "Etkinlik detayları getirilirken beklenmeyen bir hata oluştu: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -259,23 +354,52 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Önce tüm tenant'lar için etkinlikleri arayalım
+                // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Tenant listesi alınamadı: " + tenantsResponse.Message;
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                     return RedirectToAction(nameof(Index));
                 }
                 
                 EventViewModel? eventData = null;
-                Dictionary<string, string>? foundHeaders = null;
+                string? tenantSubdomain = null;
                 
                 // Her tenant için etkinliği aramaya çalışalım
                 foreach (var tenant in tenantsResponse.Data)
@@ -293,7 +417,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     {
                         _logger.LogInformation("Etkinlik {EventId} bulundu, Tenant: {TenantName}", id, tenant.Name);
                         eventData = response.Data;
-                        foundHeaders = headers;
+                        tenantSubdomain = tenant.Subdomain;
                         
                         // Tenant bilgilerini ekleyelim
                         eventData.TenantName = tenant.Name;
@@ -308,23 +432,28 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                                 eventData.RegistrationCount = attendeesResponse.Data.Count;
                                 _logger.LogInformation("Etkinlik {EventId} için katılımcı sayısı güncellendi: {Count}", id, eventData.RegistrationCount);
                             }
+                            else
+                            {
+                                _logger.LogWarning("Etkinlik {EventId} için katılımcı sayısı alınamadı: {Message}", 
+                                    id, attendeesResponse.Message);
+                                eventData.RegistrationCount = 0;
+                            }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Etkinlik {EventId} için katılımcı sayısı alınırken hata oluştu", id);
+                            eventData.RegistrationCount = 0;
                         }
                         
                         break; // Etkinliği bulduk, döngüyü sonlandır
                     }
                 }
                 
-                if (eventData != null)
+                if (eventData != null && !string.IsNullOrEmpty(tenantSubdomain))
                 {
-                    // Düzenleme işlemi için headerları session'a kaydet
-                    if (foundHeaders != null)
-                    {
-                        HttpContext.Session.SetString("EditEventTenant", eventData.TenantSubdomain);
-                    }
+                    // Düzenleme işlemi için tenant bilgisini TempData'ya kaydet
+                    // Session yerine TempData kullanarak daha kısa süreli ve güvenli saklama
+                    TempData["EditEventTenant"] = tenantSubdomain;
                     
                     return View(eventData);
                 }
@@ -335,7 +464,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik düzenleme formu açılırken hata oluştu. ID: {Id}", id);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                TempData["ErrorMessage"] = "Etkinlik düzenleme formu açılırken beklenmeyen bir hata oluştu: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -355,17 +484,23 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             {
                 try
                 {
-                    string token = null;
-                    if (HttpContext.Session.Keys.Contains("AuthToken"))
+                    // AuthService üzerinden token al
+                    string token = await _authService.GetTokenAsync();
+                    
+                    if (string.IsNullOrEmpty(token))
                     {
-                        token = HttpContext.Session.GetString("AuthToken");
+                        _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                        TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
                     }
                     
-                    // Session'dan tenant bilgisini al
+                    // TempData'dan tenant bilgisini al
                     string tenantSubdomain = "default";
-                    if (HttpContext.Session.Keys.Contains("EditEventTenant"))
+                    if (TempData.ContainsKey("EditEventTenant"))
                     {
-                        tenantSubdomain = HttpContext.Session.GetString("EditEventTenant");
+                        tenantSubdomain = TempData["EditEventTenant"].ToString();
+                        // TempData değerini tutmak istiyorsak tekrar eklemeliyiz
+                        TempData.Keep("EditEventTenant");
                     }
                     
                     var headers = new Dictionary<string, string>
@@ -387,8 +522,14 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Etkinlik güncellenirken hata oluştu. ID: {Id}", id);
-                    TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                    TempData["ErrorMessage"] = "Etkinlik güncellenirken beklenmeyen bir hata oluştu: " + ex.Message;
                 }
+            }
+            else
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                _logger.LogWarning("Etkinlik güncelleme formunda doğrulama hataları: {Errors}", string.Join(", ", errors));
+                TempData["ErrorMessage"] = "Lütfen gerekli alanları doğru şekilde doldurun.";
             }
             
             return View(model);
@@ -399,23 +540,52 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Önce tüm tenant'lar için etkinlikleri arayalım
+                // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Tenant listesi alınamadı: " + tenantsResponse.Message;
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                     return RedirectToAction(nameof(Index));
                 }
                 
                 EventViewModel? eventData = null;
-                Dictionary<string, string>? foundHeaders = null;
+                string? tenantSubdomain = null;
                 
                 // Her tenant için etkinliği aramaya çalışalım
                 foreach (var tenant in tenantsResponse.Data)
@@ -433,7 +603,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     {
                         _logger.LogInformation("Etkinlik {EventId} bulundu, Tenant: {TenantName}", id, tenant.Name);
                         eventData = response.Data;
-                        foundHeaders = headers;
+                        tenantSubdomain = tenant.Subdomain;
                         
                         // Tenant bilgilerini ekleyelim
                         eventData.TenantName = tenant.Name;
@@ -448,23 +618,27 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                                 eventData.RegistrationCount = attendeesResponse.Data.Count;
                                 _logger.LogInformation("Etkinlik {EventId} için katılımcı sayısı güncellendi: {Count}", id, eventData.RegistrationCount);
                             }
+                            else
+                            {
+                                _logger.LogWarning("Etkinlik {EventId} için katılımcı sayısı alınamadı: {Message}", 
+                                    id, attendeesResponse.Message);
+                                eventData.RegistrationCount = 0;
+                            }
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Etkinlik {EventId} için katılımcı sayısı alınırken hata oluştu", id);
+                            eventData.RegistrationCount = 0;
                         }
                         
                         break; // Etkinliği bulduk, döngüyü sonlandır
                     }
                 }
                 
-                if (eventData != null)
+                if (eventData != null && !string.IsNullOrEmpty(tenantSubdomain))
                 {
-                    // Silme işlemi için headerları session'a kaydet
-                    if (foundHeaders != null)
-                    {
-                        HttpContext.Session.SetString("DeleteEventTenant", eventData.TenantSubdomain);
-                    }
+                    // Silme işlemi için tenant bilgisini TempData'ya kaydet
+                    TempData["DeleteEventTenant"] = tenantSubdomain;
                     
                     return View(eventData);
                 }
@@ -475,7 +649,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik silme onay sayfası açılırken hata oluştu. ID: {Id}", id);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                TempData["ErrorMessage"] = "Etkinlik silme onay sayfası açılırken beklenmeyen bir hata oluştu: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -487,17 +661,22 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Session'dan tenant bilgisini al
+                // TempData'dan tenant bilgisini al
                 string tenantSubdomain = "default";
-                if (HttpContext.Session.Keys.Contains("DeleteEventTenant"))
+                if (TempData.ContainsKey("DeleteEventTenant"))
                 {
-                    tenantSubdomain = HttpContext.Session.GetString("DeleteEventTenant");
+                    tenantSubdomain = TempData["DeleteEventTenant"].ToString();
+                    // Bu değeri bir sonraki istekte kullanmayacağız
                 }
                 
                 var headers = new Dictionary<string, string>
@@ -521,7 +700,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik silinirken hata oluştu. ID: {Id}", id);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
+                TempData["ErrorMessage"] = "Etkinlik silinirken beklenmeyen bir hata oluştu: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -531,18 +710,49 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Önce tüm tenant'lar için etkinlikleri arayalım
+                _logger.LogInformation("Etkinlik katılımcıları alınıyor... Etkinlik ID: {EventId}", id);
+                
+                // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Tenant listesi alınamadı: " + tenantsResponse.Message;
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                     return RedirectToAction(nameof(Index));
                 }
                 
@@ -583,7 +793,8 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                         }
                         else
                         {
-                            _logger.LogWarning("Etkinlik {EventId} için katılımcı listesi alınamadı: {Message}", id, attendeesResponse.Message);
+                            _logger.LogWarning("Etkinlik {EventId} için katılımcı listesi alınamadı: {StatusCode} - {Message}", 
+                                id, attendeesResponse.StatusCode, attendeesResponse.Message);
                             attendeesList = new List<AttendeeViewModel>();
                         }
                         
@@ -593,14 +804,17 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 
                 if (eventData == null)
                 {
+                    _logger.LogWarning("Etkinlik bulunamadı. ID: {EventId}", id);
                     TempData["ErrorMessage"] = "Etkinlik bulunamadı.";
                     return RedirectToAction(nameof(Index));
                 }
                 
-                // İşlemler için tenant bilgisini session'a kaydet
+                // İşlemler için tenant bilgisini TempData'ya kaydet (Session yerine)
                 if (foundHeaders != null)
                 {
-                    HttpContext.Session.SetString("EventTenant", eventData.TenantSubdomain);
+                    TempData["EventTenant"] = eventData.TenantSubdomain;
+                    // Bir sonraki istek için değeri koruyalım
+                    TempData.Keep("EventTenant");
                 }
                 
                 ViewBag.Event = eventData;
@@ -624,22 +838,27 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             try
             {
                 // TenantId değerini logla
-                Console.WriteLine($"Gönderilen TenantId: {model.TenantId}");
                 _logger.LogInformation("Gönderilen TenantId: {TenantId}", model.TenantId);
                 
                 if (ModelState.IsValid)
                 {
-                    string token = null;
-                    if (HttpContext.Session.Keys.Contains("AuthToken"))
+                    // AuthService üzerinden token al
+                    string token = await _authService.GetTokenAsync();
+                    
+                    if (string.IsNullOrEmpty(token))
                     {
-                        token = HttpContext.Session.GetString("AuthToken");
+                        _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                        TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
                     }
                     
-                    // Session'dan tenant bilgisini al
+                    // TempData'dan tenant bilgisini al
                     string tenantSubdomain = "default";
-                    if (HttpContext.Session.Keys.Contains("EventTenant"))
+                    if (TempData.ContainsKey("EventTenant"))
                     {
-                        tenantSubdomain = HttpContext.Session.GetString("EventTenant");
+                        tenantSubdomain = TempData["EventTenant"].ToString();
+                        // Bir sonraki istek için değeri koruyalım
+                        TempData.Keep("EventTenant");
                     }
                     
                     var headers = new Dictionary<string, string>
@@ -666,7 +885,6 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     }
                     
                     // API'ye gönderilecek tüm veriyi logla
-                    Console.WriteLine($"API'ye gönderilen veri: EventId={model.EventId}, TenantId={model.TenantId}, Name={model.Name}, Email={model.Email}");
                     _logger.LogInformation("API'ye gönderilen veri: EventId={EventId}, TenantId={TenantId}, Name={Name}, Email={Email}", 
                         model.EventId, model.TenantId, model.Name, model.Email);
                     
@@ -730,18 +948,24 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Session'dan tenant bilgisini al
+                // TempData'dan tenant bilgisini al
                 string tenantSubdomain = "default";
-                if (HttpContext.Session.Keys.Contains("EventTenant"))
+                if (TempData.ContainsKey("EventTenant"))
                 {
-                    tenantSubdomain = HttpContext.Session.GetString("EventTenant");
-                    _logger.LogInformation("Session'dan tenant subdomain alındı: {Subdomain}", tenantSubdomain);
+                    tenantSubdomain = TempData["EventTenant"].ToString();
+                    // Bir sonraki istek için değeri koruyalım
+                    TempData.Keep("EventTenant");
+                    _logger.LogInformation("TempData'dan tenant subdomain alındı: {Subdomain}", tenantSubdomain);
                 }
                 
                 var headers = new Dictionary<string, string>
@@ -792,18 +1016,24 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                // Session'dan tenant bilgisini al
+                // TempData'dan tenant bilgisini al
                 string tenantSubdomain = "default";
-                if (HttpContext.Session.Keys.Contains("EventTenant"))
+                if (TempData.ContainsKey("EventTenant"))
                 {
-                    tenantSubdomain = HttpContext.Session.GetString("EventTenant");
-                    _logger.LogInformation("Session'dan tenant subdomain alındı: {Subdomain}", tenantSubdomain);
+                    tenantSubdomain = TempData["EventTenant"].ToString();
+                    // Bir sonraki istek için değeri koruyalım
+                    TempData.Keep("EventTenant");
+                    _logger.LogInformation("TempData'dan tenant subdomain alındı: {Subdomain}", tenantSubdomain);
                 }
                 
                 var headers = new Dictionary<string, string>
@@ -845,19 +1075,19 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                             ? eventResponse.Data.Title 
                             : "Etkinlik";
                             
-                        string statusText = status switch
-                        {
-                            AttendeeStatus.Confirmed => "onaylandı",
-                            AttendeeStatus.Cancelled => "iptal edildi",
-                            AttendeeStatus.Pending => "beklemede",
-                            _ => "güncellendi"
-                        };
-                        
-                        // E-posta gönderim bilgilerini TempData'ya ekle
-                        TempData["EmailSent"] = true;
-                        TempData["EmailAddress"] = attendee.Email;
-                        TempData["EmailSubject"] = $"{eventTitle} etkinliğine katılım durumunuz {statusText}";
-                    }
+                            string statusText = status switch
+                            {
+                                AttendeeStatus.Confirmed => "onaylandı",
+                                AttendeeStatus.Cancelled => "iptal edildi",
+                                AttendeeStatus.Pending => "beklemede",
+                                _ => "güncellendi"
+                            };
+                            
+                            // E-posta gönderim bilgilerini TempData'ya ekle
+                            TempData["EmailSent"] = true;
+                            TempData["EmailAddress"] = attendee.Email;
+                            TempData["EmailSubject"] = $"{eventTitle} etkinliğine katılım durumunuz {statusText}";
+                        }
                 }
                 else
                 {
@@ -879,50 +1109,92 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
                 // Tenant listesini al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                 
-                if (tenantsResponse.Success && tenantsResponse.Data != null)
+                if (!tenantsResponse.Success)
+                {
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    TempData["ErrorMessage"] = $"Tenant listesi alınamadı: {errorDetail}";
+                    ViewBag.Tenants = new List<TenantViewModel>();
+                }
+                else if (tenantsResponse.Data != null)
                 {
                     ViewBag.Tenants = tenantsResponse.Data;
                     _logger.LogInformation("Tenant listesi başarıyla alındı: {Count} tenant", tenantsResponse.Data.Count);
                 }
                 else
                 {
-                    _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
+                    _logger.LogWarning("Tenant listesi boş geldi");
                     ViewBag.Tenants = new List<TenantViewModel>();
+                    TempData["ErrorMessage"] = "Tenant listesi boş. Sistem yöneticinize başvurun.";
                 }
                 
-                return View(new EventViewModel());
+                // Yeni bir model oluşturup varsayılan değerleri ayarla
+                var model = new EventCreateViewModel
+                {
+                    StartDate = DateTime.Now.AddDays(1),
+                    EndDate = DateTime.Now.AddDays(1).AddHours(2),
+                    MaxAttendees = 100,
+                    Capacity = 100,
+                    IsPublic = true
+                };
+                
+                return View(model);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Create sayfası yüklenirken hata oluştu");
                 TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
                 ViewBag.Tenants = new List<TenantViewModel>();
-                return View(new EventViewModel());
+                return View(new EventCreateViewModel());
             }
         }
         
         // Yeni etkinlik oluşturma işlemi
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(EventViewModel model, string SelectedTenant)
+        public async Task<IActionResult> Create(EventCreateViewModel model, string SelectedTenant)
         {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    string token = null;
-                    if (HttpContext.Session.Keys.Contains("AuthToken"))
+                    // AuthService üzerinden token al
+                    string token = await _authService.GetTokenAsync();
+                    
+                    if (string.IsNullOrEmpty(token))
                     {
-                        token = HttpContext.Session.GetString("AuthToken");
+                        _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                        TempData["ErrorMessage"] = "Oturumunuz sonlanmış. Lütfen tekrar giriş yapın.";
+                        return RedirectToAction("Login", "Account", new { area = "" });
                     }
                     
                     // Kullanıcı tarafından seçilen tenant bilgisini al
@@ -955,8 +1227,8 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 }
                 
                 // Tenant listesini tekrar yükle
-                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", 
-                    HttpContext.Session.GetString("AuthToken"));
+                string tenantToken = await _authService.GetTokenAsync();
+                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", tenantToken);
                 ViewBag.Tenants = tenantsResponse.Success && tenantsResponse.Data != null 
                     ? tenantsResponse.Data 
                     : new List<TenantViewModel>();
@@ -969,169 +1241,13 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
                 
                 // Tenant listesini tekrar yükle
-                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", 
-                    HttpContext.Session.GetString("AuthToken"));
+                string tenantToken = await _authService.GetTokenAsync();
+                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", tenantToken);
                 ViewBag.Tenants = tenantsResponse.Success && tenantsResponse.Data != null 
                     ? tenantsResponse.Data 
                     : new List<TenantViewModel>();
                 
                 return View(model);
-            }
-        }
-
-        // Etkinlik Katılımcı Onayları Sayfası
-        public async Task<IActionResult> Approvals(Guid id)
-        {
-            try
-            {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
-                {
-                    token = HttpContext.Session.GetString("AuthToken");
-                }
-                
-                // Tüm tenantları al
-                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null)
-                {
-                    _logger.LogError("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    TempData["ErrorMessage"] = "Kiracı listesi alınamadı.";
-                    return RedirectToAction(nameof(Index));
-                }
-                
-                EventViewModel eventModel = null;
-                List<AttendeeViewModel> attendees = null;
-                string tenantSubdomain = null;
-                
-                // Her tenant için etkinliği ara
-                foreach (var tenant in tenantsResponse.Data)
-                {
-                    var headers = new Dictionary<string, string>
-                    {
-                        { "X-Tenant", tenant.Subdomain }
-                    };
-                    
-                    _logger.LogInformation("Tenant {TenantName} ({TenantId}) için etkinlik aranıyor. X-Tenant: {Subdomain}", 
-                        tenant.Name, tenant.Id, tenant.Subdomain);
-                    
-                    var eventResponse = await _apiService.GetAsyncWithHeaders<EventViewModel>($"api/events/{id}", token, headers);
-                    
-                    if (eventResponse.Success && eventResponse.Data != null)
-                    {
-                        _logger.LogInformation("Etkinlik bulundu: {EventTitle} (ID: {EventId}, TenantId: {TenantId})", 
-                            eventResponse.Data.Title, eventResponse.Data.Id, eventResponse.Data.TenantId);
-                        
-                        eventModel = eventResponse.Data;
-                        eventModel.TenantName = tenant.Name;
-                        eventModel.TenantSubdomain = tenant.Subdomain;
-                        tenantSubdomain = tenant.Subdomain;
-                        
-                        // Doğru tenant bulundu, katılımcıları al
-                        var attendeesResponse = await _apiService.GetAsyncWithHeaders<List<AttendeeViewModel>>(
-                            $"api/events/{id}/attendees", token, headers);
-                        
-                        if (attendeesResponse.Success && attendeesResponse.Data != null)
-                        {
-                            attendees = attendeesResponse.Data;
-                            _logger.LogInformation("Etkinlik için {Count} katılımcı bulundu", attendees.Count);
-                            eventModel.RegistrationCount = attendees.Count;
-                        }
-                        else
-                        {
-                            _logger.LogWarning("Katılımcılar alınamadı: {Message}", attendeesResponse.Message);
-                            attendees = new List<AttendeeViewModel>();
-                        }
-                        
-                        break; // Etkinlik bulundu, döngüden çık
-                    }
-                }
-                
-                if (eventModel == null)
-                {
-                    _logger.LogWarning("Hiçbir tenant'ta ID={Id} olan etkinlik bulunamadı", id);
-                    TempData["ErrorMessage"] = "Etkinlik bulunamadı.";
-                    return RedirectToAction(nameof(Index));
-                }
-                
-                // Tenant bilgisini session'a kaydet (daha sonraki işlemler için)
-                HttpContext.Session.SetString("EventTenantSubdomain", tenantSubdomain);
-                _logger.LogInformation("Session'a tenant subdomain kaydedildi: {Subdomain}", tenantSubdomain);
-                
-                ViewBag.Event = eventModel;
-                ViewBag.EventId = id;
-                
-                return View(attendees ?? new List<AttendeeViewModel>());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Etkinlik katılımcı onayları getirilirken hata oluştu. EventID: {Id}", id);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
-                return RedirectToAction(nameof(Index));
-            }
-        }
-        
-        // Katılımcı Listesini E-posta olarak Gönder
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SendAttendeesList(Guid eventId, string recipientEmail)
-        {
-            try
-            {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
-                {
-                    token = HttpContext.Session.GetString("AuthToken");
-                }
-                
-                // Session'dan tenant bilgisini al
-                string tenantSubdomain = "default";
-                if (HttpContext.Session.Keys.Contains("EventTenantSubdomain"))
-                {
-                    tenantSubdomain = HttpContext.Session.GetString("EventTenantSubdomain");
-                    _logger.LogInformation("Session'dan tenant subdomain alındı: {Subdomain}", tenantSubdomain);
-                }
-                
-                var headers = new Dictionary<string, string>
-                {
-                    { "X-Tenant", tenantSubdomain }
-                };
-                
-                // Etkinlik bilgisini al
-                var eventResponse = await _apiService.GetAsyncWithHeaders<EventViewModel>($"api/events/{eventId}", token, headers);
-                if (!eventResponse.Success || eventResponse.Data == null)
-                {
-                    TempData["ErrorMessage"] = "Etkinlik bilgileri alınamadı.";
-                    return RedirectToAction(nameof(Approvals), new { id = eventId });
-                }
-                
-                // Katılımcıları al
-                var attendeesResponse = await _apiService.GetAsyncWithHeaders<List<AttendeeViewModel>>($"api/events/{eventId}/attendees", token, headers);
-                if (!attendeesResponse.Success || attendeesResponse.Data == null)
-                {
-                    TempData["ErrorMessage"] = "Katılımcı listesi alınamadı.";
-                    return RedirectToAction(nameof(Approvals), new { id = eventId });
-                }
-                
-                var eventDetails = eventResponse.Data;
-                var attendees = attendeesResponse.Data;
-                
-                // E-posta gönderimi simülasyonu
-                _logger.LogInformation("Katılımcı listesi e-posta ile gönderiliyor: {Email}", recipientEmail);
-                
-                // E-posta gönderim bilgilerini TempData'ya ekle
-                TempData["EmailSent"] = true;
-                TempData["EmailAddress"] = recipientEmail;
-                TempData["EmailSubject"] = $"{eventDetails.Title} - Katılımcı Listesi";
-                TempData["AttendeeCount"] = attendees.Count;
-                TempData["SuccessMessage"] = "Katılımcı listesi başarıyla e-posta adresinize gönderilmiştir.";
-                
-                return RedirectToAction(nameof(Approvals), new { id = eventId });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Katılımcı listesi e-posta ile gönderilirken hata oluştu. EventID: {EventId}", eventId);
-                TempData["ErrorMessage"] = $"Bir hata oluştu: {ex.Message}";
-                return RedirectToAction(nameof(Approvals), new { id = eventId });
             }
         }
 
@@ -1141,18 +1257,44 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                string token = null;
-                if (HttpContext.Session.Keys.Contains("AuthToken"))
+                // AuthService üzerinden token al
+                string token = await _authService.GetTokenAsync();
+                
+                if (string.IsNullOrEmpty(token))
                 {
-                    token = HttpContext.Session.GetString("AuthToken");
+                    _logger.LogWarning("Token alınamadı veya boş. Oturum sonlanmış olabilir.");
+                    return NotFound("Oturum sonlanmış. Lütfen tekrar giriş yapın.");
                 }
                 
                 // Tüm tenantları al
                 var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
-                if (!tenantsResponse.Success || tenantsResponse.Data == null)
+                
+                if (!tenantsResponse.Success)
                 {
-                    _logger.LogError("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
-                    return NotFound("Tenant listesi alınamadı");
+                    _logger.LogWarning("Tenant listesi alınamadı: {StatusCode} - {Message}", 
+                        tenantsResponse.StatusCode, tenantsResponse.Message);
+                        
+                    string errorDetail = "";
+                    if (tenantsResponse.StatusCode == 401)
+                    {
+                        errorDetail = "Yetkilendirme hatası.";
+                    }
+                    else if (tenantsResponse.StatusCode == 403)
+                    {
+                        errorDetail = "Bu işlem için yetkiniz bulunmamaktadır.";
+                    }
+                    else 
+                    {
+                        errorDetail = tenantsResponse.Message;
+                    }
+                    
+                    return NotFound($"Tenant listesi alınamadı: {errorDetail}");
+                }
+                
+                if (tenantsResponse.Data == null || !tenantsResponse.Data.Any())
+                {
+                    _logger.LogWarning("Tenant listesi boş geldi");
+                    return NotFound("Tenant listesi boş.");
                 }
                 
                 List<AttendeeViewModel> allAttendees = null;
@@ -1187,9 +1329,10 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                         }
                         else
                         {
-                            _logger.LogWarning("Katılımcılar alınamadı: {Message}", attendeesResponse.Message);
+                            _logger.LogWarning("Katılımcılar alınamadı: {StatusCode} - {Message}", 
+                                attendeesResponse.StatusCode, attendeesResponse.Message);
                             allAttendees = new List<AttendeeViewModel>();
-                            break; // Etkinlik bulundu ama katılımcı yok, döngüden çık
+                            break; // Etkinlik bulundu ama katılımcı yok veya hata var, döngüden çık
                         }
                     }
                 }
@@ -1205,7 +1348,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik katılımcıları JSON formatında getirilirken hata oluştu. EventID: {Id}", id);
-                return StatusCode(500, "Sunucu hatası oluştu");
+                return StatusCode(500, "Sunucu hatası oluştu: " + ex.Message);
             }
         }
     }

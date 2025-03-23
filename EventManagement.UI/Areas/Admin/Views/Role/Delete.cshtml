@@ -1,0 +1,40 @@
+@model EventManagement.UI.Models.Role.RoleViewModel
+
+@{
+    ViewData["Title"] = "Rol Sil";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Rol Sil</h1>
+    <p class="mb-4">Bu rolü silmek istediğinize emin misiniz?</p>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Rol Bilgileri</h6>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <strong>Uyarı!</strong> Bu rolü sildiğinizde, bu role sahip kullanıcılar etkilenebilir.
+            </div>
+            
+            <dl class="row">
+                <dt class="col-sm-3">Rol Adı</dt>
+                <dd class="col-sm-9">@Model.Name</dd>
+                
+                <dt class="col-sm-3">Açıklama</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+                
+                <dt class="col-sm-3">Oluşturulma Tarihi</dt>
+                <dd class="col-sm-9">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+            </dl>
+            
+            <form asp-action="Delete" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="form-group">
+                    <input type="submit" value="Sil" class="btn btn-danger" />
+                    <a asp-action="Index" class="btn btn-secondary">İptal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

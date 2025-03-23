@@ -1,0 +1,110 @@
+@model EventManagement.UI.Models.Attendee.AttendeeViewModel
+
+@{
+    ViewData["Title"] = "Katılımcı Detayı";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Katılımcı Detayı</h1>
+    <p class="mb-4">Katılımcı bilgilerini görüntüleyin</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Katılımcı Bilgileri</h6>
+            <div>
+                <a href="@Url.Action("Index", "Attendee")" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Listeye Dön
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="fw-bold">Ad Soyad:</label>
+                        <div>@Model.Name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">E-posta:</label>
+                        <div>@Model.Email</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Telefon:</label>
+                        <div>@Model.Phone</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Durum:</label>
+                        <div>
+                            @switch (Model.Status)
+                            {
+                                case EventManagement.UI.Models.Attendee.AttendeeStatus.Registered:
+                                    <span class="badge bg-warning">Kayıtlı</span>
+                                    break;
+                                case EventManagement.UI.Models.Attendee.AttendeeStatus.Confirmed:
+                                    <span class="badge bg-success">Onaylandı</span>
+                                    break;
+                                case EventManagement.UI.Models.Attendee.AttendeeStatus.Cancelled:
+                                    <span class="badge bg-danger">İptal Edildi</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-secondary">Bilinmiyor</span>
+                                    break;
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="fw-bold">Etkinlik:</label>
+                        <div>@Model.EventName</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Tenant:</label>
+                        <div>@ViewBag.TenantName</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Kayıt Tarihi:</label>
+                        <div>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold">Katılım Durumu:</label>
+                        <div>@(Model.HasAttended ? "Katıldı" : "Katılmadı")</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label class="fw-bold">Notlar:</label>
+                        <div class="p-2 bg-light rounded">@(string.IsNullOrEmpty(Model.Notes) ? "Not bulunmuyor" : Model.Notes)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

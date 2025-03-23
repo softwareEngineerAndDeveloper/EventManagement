@@ -1,5 +1,6 @@
 using EventManagement.UI.Models.Event;
 using EventManagement.UI.Models.Report;
+using EventManagement.UI.Models.Tenant;
 using EventManagement.UI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +35,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
 
                 // Tüm etkinlikleri al (dropdown için)
                 // Önce tenant listesini al
-                var tenantsResponse = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                 if (!tenantsResponse.Success || tenantsResponse.Data == null)
                 {
                     _logger.LogWarning("Tenant listesi alınamadı: {Message}", tenantsResponse.Message);
@@ -207,7 +208,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
             try
             {
                 // Tenant listesini al
-                var tenantsResponse = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+                var tenantsResponse = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                 if (!tenantsResponse.Success || tenantsResponse.Data == null)
                 {
                     _logger.LogWarning("İstatistikler için tenant listesi alınamadı: {Message}", tenantsResponse.Message);

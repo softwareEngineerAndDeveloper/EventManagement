@@ -151,12 +151,19 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">Şifre</label>
+                                    <input type="password" class="form-control" id="password" name="Password">
+                                    <div class="invalid-feedback" id="passwordFeedback"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
                                     <label for="tenantSelect" class="form-label">Tenant</label>
                                     <select class="form-select" id="tenantSelect" name="TenantId">
                                         <option value="">Tenant Seçiniz</option>
                                     </select>
                                     <div class="invalid-feedback" id="tenantFeedback"></div>
                                 </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="form-check form-switch mt-4">
                                         <input class="form-check-input" type="checkbox" id="isActive" name="IsActive">
@@ -228,6 +235,9 @@
 </div>
 
 @section Scripts {
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <script>
         $(document).ready(function() {
             // DataTable
@@ -264,7 +274,7 @@
                 $('#userModal').modal('show');
                 
                 // Roller sekmesine geçildiğinde rolleri yükle
-                $('#roles-tab').on('shown.bs.tab', function() {
+                $('#roles-tab').on('click', function() {
                     loadRoles();
                 });
             });
@@ -289,63 +299,78 @@
             $('#btnUpdateUser').click(function() {
                 if (!validateUserForm()) return;
                 
-                // Kullanıcı bilgilerini al
-                var userId = $('#userId').val();
-                var firstName = $('#firstName').val();
-                var lastName = $('#lastName').val();
-                var email = $('#email').val();
-                var phoneNumber = $('#phoneNumber').val();
-                var password = $('#password').val();
-                var isActive = $('#isActive').prop('checked');
-                
-                // Seçili rolleri al
-                var roleIds = [];
-                $('.role-checkbox:checked').each(function() {
-                    roleIds.push($(this).val());
-                });
-                
-                var data = {
-                    id: userId,
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    phoneNumber: phoneNumber,
-                    password: password,
-                    isActive: isActive,
-                    roleIds: roleIds,
-                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
-                };
-                
-                // AJAX isteği gönder
-                $.ajax({
-                    url: '@Url.Action("Update", "User", new { area = "Admin" })',
-                    type: 'POST',
-                    data: data,
-                    success: function(response) {
-                        if (response.success) {
-                            // Başarılı olduğunda
-                            $('#userModal').modal('hide');
-                            showSuccess('Kullanıcı başarıyla güncellendi.');
-                            
-                            // Rolleri güncelle
-                            if (roleIds.length > 0) {
-                                updateUserRoles(userId, roleIds);
-                            } else {
-                                // Sayfa yenilensin
-                                window.location.reload();
-                            }
-                        } else {
-                            // Hata durumunda
-                            showError(response.message);
-                            
-                            // Form validasyon hatalarını göster
-                            if (response.errors && response.errors.length > 0) {
-                                showFormErrors(response.errors);
-                            }
+                // SweetAlert ile onay iste
+                Swal.fire({
+                    title: 'Onay',
+                    text: 'Kullanıcı bilgilerini güncellemek istediğinize emin misiniz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Evet, Güncelle',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Kullanıcı bilgilerini al
+                        var userId = $('#userId').val();
+                        var firstName = $('#firstName').val();
+                        var lastName = $('#lastName').val();
+                        var email = $('#email').val();
+                        var phoneNumber = $('#phoneNumber').val();
+                        var password = $('#password').val();
+                        var isActive = $('#isActive').prop('checked');
+                        
+                        // Seçili rolü al
+                        var roleIds = [];
+                        var selectedRoleId = $('input[name="userRole"]:checked').val();
+                        if (selectedRoleId) {
+                            roleIds.push(selectedRoleId);
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        showError('Kullanıcı güncellenirken bir hata oluştu!');
+                        
+                        var data = {
+                            id: userId,
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            phoneNumber: phoneNumber,
+                            password: password,
+                            isActive: isActive,
+                            roleIds: roleIds,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        };
+                        
+                        // AJAX isteği gönder
+                        $.ajax({
+                            url: '@Url.Action("Update", "User", new { area = "Admin" })',
+                            type: 'POST',
+                            data: data,
+                            success: function(response) {
+                                if (response.success) {
+                                    // Başarılı olduğunda
+                                    $('#userModal').modal('hide');
+                                    showSuccess('Kullanıcı başarıyla güncellendi.');
+                                    
+                                    // Rolleri güncelle
+                                    if (roleIds.length > 0) {
+                                        updateUserRoles(userId, roleIds);
+                                    } else {
+                                        // Sayfa yenilensin
+                                        window.location.reload();
+                                    }
+                                } else {
+                                    // Hata durumunda
+                                    showError(response.message);
+                                    
+                                    // Form validasyon hatalarını göster
+                                    if (response.errors && response.errors.length > 0) {
+                                        showFormErrors(response.errors);
+                                    }
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                showError('Kullanıcı güncellenirken bir hata oluştu!');
+                            }
+                        });
                     }
                 });
             });
@@ -354,61 +379,79 @@
             $('#btnCreateUser').click(function() {
                 if (!validateUserForm()) return;
                 
-                // Kullanıcı bilgilerini al
-                var firstName = $('#firstName').val();
-                var lastName = $('#lastName').val();
-                var email = $('#email').val();
-                var phoneNumber = $('#phoneNumber').val();
-                var password = $('#password').val();
-                var isActive = $('#isActive').prop('checked');
-                
-                // Seçili rolleri al
-                var roleIds = [];
-                $('.role-checkbox:checked').each(function() {
-                    roleIds.push($(this).val());
-                });
-                
-                var data = {
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    phoneNumber: phoneNumber,
-                    password: password,
-                    isActive: isActive,
-                    roleIds: roleIds,
-                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
-                };
-                
-                // AJAX isteği gönder
-                $.ajax({
-                    url: '@Url.Action("Create", "User", new { area = "Admin" })',
-                    type: 'POST',
-                    data: data,
-                    success: function(response) {
-                        if (response.success) {
-                            // Başarılı olduğunda
-                            $('#userModal').modal('hide');
-                            showSuccess('Kullanıcı başarıyla oluşturuldu.');
-                            
-                            // Rolleri güncelle
-                            if (roleIds.length > 0 && response.userId) {
-                                updateUserRoles(response.userId, roleIds);
-                            } else {
-                                // Sayfa yenilensin
-                                window.location.reload();
-                            }
-                        } else {
-                            // Hata durumunda
-                            showError(response.message);
-                            
-                            // Form validasyon hatalarını göster
-                            if (response.errors && response.errors.length > 0) {
-                                showFormErrors(response.errors);
-                            }
+                // SweetAlert ile onay iste
+                Swal.fire({
+                    title: 'Onay',
+                    text: 'Yeni kullanıcı oluşturmak istediğinize emin misiniz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Evet, Oluştur',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Kullanıcı bilgilerini al
+                        var firstName = $('#firstName').val();
+                        var lastName = $('#lastName').val();
+                        var email = $('#email').val();
+                        var phoneNumber = $('#phoneNumber').val();
+                        var password = $('#password').val();
+                        var isActive = $('#isActive').prop('checked');
+                        var tenantId = $('#tenantSelect').val();
+                        
+                        // Seçili rolü al
+                        var roleIds = [];
+                        var selectedRoleId = $('input[name="userRole"]:checked').val();
+                        if (selectedRoleId) {
+                            roleIds.push(selectedRoleId);
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        showError('Kullanıcı oluşturulurken bir hata oluştu!');
+                        
+                        var data = {
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            phoneNumber: phoneNumber,
+                            password: password,
+                            isActive: isActive,
+                            tenantId: tenantId,
+                            roleIds: roleIds,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        };
+                        
+                        console.log("Gönderilen veri:", data);
+                        
+                        // AJAX isteği gönder
+                        $.ajax({
+                            url: '@Url.Action("Create", "User", new { area = "Admin" })',
+                            type: 'POST',
+                            data: data,
+                            success: function(response) {
+                                if (response.success) {
+                                    // Başarılı olduğunda
+                                    $('#userModal').modal('hide');
+                                    showSuccess('Kullanıcı başarıyla oluşturuldu.');
+                                    
+                                    // Sayfa yenilensin
+                                    setTimeout(function() {
+                                        window.location.reload();
+                                    }, 1500);
+                                } else {
+                                    // Hata durumunda
+                                    showError(response.message);
+                                    
+                                    // Form validasyon hatalarını göster
+                                    if (response.errors && response.errors.length > 0) {
+                                        showFormErrors(response.errors);
+                                    }
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("AJAX hatası:", error);
+                                console.error("Yanıt:", xhr.responseText);
+                                showError('Kullanıcı oluşturulurken bir hata oluştu: ' + error);
+                            }
+                        });
                     }
                 });
             });
@@ -476,7 +519,7 @@
                             roles.forEach(function(role) {
                                 html += '<div class="col-md-6 mb-2">';
                                 html += '<div class="form-check">';
-                                html += `<input class="form-check-input role-checkbox" type="checkbox" id="role_${role.id}" value="${role.id}">`;
+                                html += `<input class="form-check-input role-radio" type="radio" name="userRole" id="role_${role.id}" value="${role.id}">`;
                                 html += `<label class="form-check-label" for="role_${role.id}">${role.name}</label>`;
                                 html += '</div>';
                                 html += '</div>';
@@ -490,11 +533,9 @@
                                 url: '@Url.Action("GetUserRoles", "User", new { area = "Admin" })/' + userId,
                                 type: 'GET',
                                 success: function(roleResponse) {
-                                    if (roleResponse.success && roleResponse.roles) {
-                                        // Kullanıcının rollerini işaretle
-                                        roleResponse.roles.forEach(function(roleId) {
-                                            $('#role_' + roleId).prop('checked', true);
-                                        });
+                                    if (roleResponse.success && roleResponse.roles && roleResponse.roles.length > 0) {
+                                        // Kullanıcının ilk rolünü işaretle (sadece bir tane olacak)
+                                        $('#role_' + roleResponse.roles[0]).prop('checked', true);
                                     }
                                 }
                             });
@@ -507,6 +548,44 @@
                 },
                 error: function(xhr, status, error) {
                     $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu!</div>');
+                }
+            });
+        }
+        
+        // Tüm rolleri yükle - Yeni kullanıcı oluşturma için
+        function loadRoles() {
+            // Rolleri GetRoles aksiyonundan çek
+            $.ajax({
+                url: '@Url.Action("GetRoles", "User", new { area = "Admin" })',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.roles) {
+                        let html = '';
+                        const roles = response.roles;
+                        
+                        if (roles.length > 0) {
+                            html += '<div class="row">';
+                            roles.forEach(function(role) {
+                                html += '<div class="col-md-6 mb-2">';
+                                html += '<div class="form-check">';
+                                html += `<input class="form-check-input role-radio" type="radio" name="userRole" id="role_${role.id}" value="${role.id}">`;
+                                html += `<label class="form-check-label" for="role_${role.id}">${role.name}</label>`;
+                                html += '</div>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        } else {
+                            html = '<div class="alert alert-warning">Roller bulunamadı!</div>';
+                        }
+                        
+                        $('#rolesList').html(html);
+                    } else {
+                        $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu: ' + (response.message || 'Bilinmeyen hata') + '</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#rolesList').html('<div class="alert alert-danger">Roller yüklenirken bir hata oluştu: ' + error + '</div>');
+                    console.error('Roller yüklenirken hata:', error);
                 }
             });
         }
@@ -628,6 +707,7 @@
             // Form validasyonunu resetle
             $('.is-invalid').removeClass('is-invalid');
             $('.invalid-feedback').text('');
+            $('.invalid-feedback.d-block').remove();
             
             var isValid = true;
             
@@ -651,7 +731,7 @@
                 $('#email').addClass('is-invalid');
                 $('#emailFeedback').text('E-posta alanı zorunludur.');
                 isValid = false;
-            } else if (email.indexOf('@@') === -1 || email.indexOf('.') === -1) {
+            } else if (!validateEmail(email)) {
                 $('#email').addClass('is-invalid');
                 $('#emailFeedback').text('Geçerli bir e-posta adresi giriniz.');
                 isValid = false;
@@ -663,8 +743,28 @@
                 $('#passwordFeedback').text('Şifre alanı zorunludur.');
                 isValid = false;
             }
+
+            // Tenant kontrolü - seçilmiş olmalı
+            if (!$('#tenantSelect').val()) {
+                $('#tenantSelect').addClass('is-invalid');
+                $('#tenantFeedback').text('Lütfen bir tenant seçiniz.');
+                isValid = false;
+            }
+            
+            // Rol seçimi kontrolü
+            if (!$('input[name="userRole"]:checked').val()) {
+                $('#rolesList').addClass('is-invalid');
+                $('#rolesList').after('<div class="invalid-feedback d-block">Lütfen bir rol seçiniz.</div>');
+                isValid = false;
+            }
             
             return isValid;
+        }
+
+        // Email validasyon fonksiyonu
+        function validateEmail(email) {
+            var re = /\S+@@\S+\.\S+/;
+            return re.test(email);
         }
 
         // Form hatalarını gösterme
@@ -719,6 +819,7 @@
             // Validasyon sınıflarını kaldır
             $('.is-invalid').removeClass('is-invalid');
             $('.invalid-feedback').text('');
+            $('.invalid-feedback.d-block').remove();
             
             // Role checkboxlarını temizle
             $('#rolesList').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Yükleniyor...</span></div></div>');

@@ -39,6 +39,10 @@ namespace EventManagement.UI.Models.Tenant
         [JsonProperty("contactPhone")]
         public string ContactPhone { get; set; } = string.Empty;
         
+        [Display(Name = "Logo URL")]
+        [JsonProperty("logoUrl")]
+        public string? LogoUrl { get; set; }
+        
         [Display(Name = "Aktif")]
         [JsonProperty("isActive")]
         public bool IsActive { get; set; } = true;

@@ -35,11 +35,24 @@ namespace EventManagement.API.Controllers
                     return BadRequest("Geçersiz tenant bilgisi");
                 }
 
-                var response = await _attendeeService.GetAttendeesByEventIdAsync(eventId, parsedTenantId);
+                // Admin rolü kontrolü
+                bool isAdmin = User.IsInRole("Admin");
+                
+                var response = await _attendeeService.GetAttendeesByEventIdAsync(eventId, parsedTenantId, isAdmin);
                 
                 if (!response.IsSuccess)
                 {
-                    return NotFound(response.Message);
+                    if (response.Message.Contains("bulunamadı"))
+                    {
+                        return NotFound(new ResponseDto<List<AttendeeDto>> { IsSuccess = false, Message = response.Message });
+                    }
+                    
+                    if (response.Message.Contains("erişim izniniz yok"))
+                    {
+                        return Forbid();
+                    }
+                    
+                    return BadRequest(new ResponseDto<List<AttendeeDto>> { IsSuccess = false, Message = response.Message });
                 }
 
                 return Ok(response);
@@ -47,7 +60,7 @@ namespace EventManagement.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Katılımcılar getirilirken bir hata oluştu. EventId: {EventId}", eventId);
-                return StatusCode(500, "Katılımcılar getirilirken bir hata oluştu");
+                return StatusCode(500, new ResponseDto<List<AttendeeDto>> { IsSuccess = false, Message = "Katılımcılar getirilirken bir hata oluştu" });
             }
         }
 
@@ -263,11 +276,24 @@ namespace EventManagement.API.Controllers
                     return BadRequest("Geçersiz tenant bilgisi");
                 }
 
-                var response = await _attendeeService.GetEventStatisticsAsync(eventId, parsedTenantId);
+                // Admin rolü kontrolü
+                bool isAdmin = User.IsInRole("Admin");
+                
+                var response = await _attendeeService.GetEventStatisticsAsync(eventId, parsedTenantId, isAdmin);
                 
                 if (!response.IsSuccess)
                 {
-                    return NotFound(response.Message);
+                    if (response.Message.Contains("bulunamadı"))
+                    {
+                        return NotFound(new ResponseDto<EventStatisticsDto> { IsSuccess = false, Message = response.Message });
+                    }
+                    
+                    if (response.Message.Contains("erişim izniniz yok"))
+                    {
+                        return Forbid();
+                    }
+                    
+                    return BadRequest(new ResponseDto<EventStatisticsDto> { IsSuccess = false, Message = response.Message });
                 }
 
                 return Ok(response);
@@ -275,7 +301,7 @@ namespace EventManagement.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Etkinlik istatistikleri getirilirken bir hata oluştu. EventId: {EventId}", eventId);
-                return StatusCode(500, "Etkinlik istatistikleri getirilirken bir hata oluştu");
+                return StatusCode(500, new ResponseDto<EventStatisticsDto> { IsSuccess = false, Message = "Etkinlik istatistikleri getirilirken bir hata oluştu" });
             }
         }
     }

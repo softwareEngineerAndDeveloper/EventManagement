@@ -32,6 +32,11 @@ builder.Services.AddHttpClient("ApiClient", client =>
 builder.Services.AddScoped<IApiService, ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// UI Servisleri - Sadece tanımlanmış olanlar
+builder.Services.AddHttpClient<IUserService, UserService>();
+builder.Services.AddHttpClient<IRoleService, RoleService>();
+
+
 // Logging
 builder.Services.AddLogging(logging =>
 {

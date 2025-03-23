@@ -31,15 +31,28 @@ namespace EventManagement.Application.Services
             return ResponseDto<List<UserDto>>.Success(userDtos);
         }
 
-        public async Task<ResponseDto<UserDto>> GetUserByIdAsync(Guid id, Guid tenantId)
+        public async Task<ResponseDto<UserDto>> GetUserByIdAsync(Guid id, Guid tenantId, bool isAdmin = false)
         {
-            var user = await _unitOfWork.Users.FindAsync(u => u.Id == id && u.TenantId == tenantId);
-            var userFromDb = user.FirstOrDefault();
-            
-            if (userFromDb == null)
-                throw new NotFoundException(nameof(User), id);
+            try
+            {
+                // Eğer admin ise tenant kontrolü yapmadan kullanıcıyı ara
+                var users = isAdmin 
+                    ? await _unitOfWork.Users.FindAsync(u => u.Id == id)
+                    : await _unitOfWork.Users.FindAsync(u => u.Id == id && u.TenantId == tenantId);
+                    
+                var user = users.FirstOrDefault();
+                
+                if (user == null)
+                {
+                    return ResponseDto<UserDto>.Fail($"Kullanıcı bulunamadı (ID: {id})");
+                }
 
-            return ResponseDto<UserDto>.Success(MapToDto(userFromDb));
+                return ResponseDto<UserDto>.Success(MapToDto(user));
+            }
+            catch (Exception ex)
+            {
+                return ResponseDto<UserDto>.Fail($"Kullanıcı bilgileri alınırken bir hata oluştu: {ex.Message}");
+            }
         }
 
         public async Task<ResponseDto<UserDto>> GetUserByEmailAsync(string email, Guid tenantId)
@@ -95,18 +108,38 @@ namespace EventManagement.Application.Services
             return ResponseDto<UserDto>.Success(MapToDto(user));
         }
 
-        public async Task<ResponseDto<bool>> DeleteUserAsync(Guid id, Guid tenantId)
+        public async Task<ResponseDto<bool>> DeleteUserAsync(Guid id, Guid tenantId, bool isAdmin = false)
         {
-            var users = await _unitOfWork.Users.FindAsync(u => u.Id == id && u.TenantId == tenantId);
-            var user = users.FirstOrDefault();
-            
-            if (user == null)
-                throw new NotFoundException(nameof(User), id);
+            try
+            {
+                // Eğer admin ise tenant kontrolü yapmadan kullanıcıyı ara
+                var users = isAdmin 
+                    ? await _unitOfWork.Users.FindAsync(u => u.Id == id)
+                    : await _unitOfWork.Users.FindAsync(u => u.Id == id && u.TenantId == tenantId);
+                    
+                var user = users.FirstOrDefault();
+                
+                if (user == null)
+                {
+                    return ResponseDto<bool>.Fail($"Kullanıcı bulunamadı (ID: {id})");
+                }
+                
+                // Admin rolü olmayan kullanıcılar için tenant kontrolü
+                if (!isAdmin && user.TenantId != tenantId)
+                {
+                    return ResponseDto<bool>.Fail("Bu kullanıcıyı silme yetkiniz yok");
+                }
 
-            await _unitOfWork.Users.DeleteAsync(user);
-            await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.Users.DeleteAsync(user);
+                await _unitOfWork.SaveChangesAsync();
 
-            return ResponseDto<bool>.Success(true);
+                return ResponseDto<bool>.Success(true, "Kullanıcı başarıyla silindi");
+            }
+            catch (Exception ex)
+            {
+                // Herhangi bir hata durumunda hata mesajı döndür
+                return ResponseDto<bool>.Fail($"Kullanıcıyı silerken bir hata oluştu: {ex.Message}");
+            }
         }
 
         public async Task<ResponseDto<string>> AuthenticateAsync(LoginDto loginDto)
@@ -248,6 +281,45 @@ namespace EventManagement.Application.Services
                 return default!;
                 
             return JsonSerializer.Deserialize<T>(bytes, _jsonOptions) ?? default!;
+        }
+
+        // Dashboard istatistikleri için eklenen metodlar
+        public async Task<int> GetTotalUsersCountAsync()
+        {
+            try 
+            {
+                string cacheKey = "users:count:total";
+                
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        var users = await _unitOfWork.Users.GetAllAsync();
+                        return users.Count();
+                    }, 
+                    TimeSpan.FromMinutes(30));
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
+        }
+        
+        public async Task<int> GetTotalUsersByTenantAsync(Guid tenantId)
+        {
+            try
+            {
+                string cacheKey = $"tenant:{tenantId}:users:count";
+                
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        var users = await _unitOfWork.Users.FindAsync(u => u.TenantId == tenantId);
+                        return users.Count();
+                    }, 
+                    TimeSpan.FromMinutes(15));
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
         }
     }
 

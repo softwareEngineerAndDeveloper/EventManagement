@@ -52,15 +52,23 @@ namespace EventManagement.UI.Models.Event
         [JsonPropertyName("location")]
         public string Location { get; set; } = string.Empty;
         
-        [Display(Name = "Toplam Katılımcı")]
+        [Display(Name = "Maksimum Katılımcı Sayısı")]
         [JsonPropertyName("maxAttendees")]
-        public int? MaxAttendees { get; set; }
+        public int MaxAttendees { get; set; }
+        
+        [Display(Name = "Katılımcı Sayısı")]
+        [JsonPropertyName("attendeeCount")]
+        public int AttendeeCount { get; set; }
+        
+        [Display(Name = "Kayıt Sayısı")]
+        [JsonPropertyName("registrationCount")]
+        public int RegistrationCount { get; set; }
         
         [Display(Name = "Kapasite")]
         [JsonPropertyName("capacity")]
-        public int? Capacity { get; set; }
+        public int Capacity { get; set; }
         
-        [Display(Name = "Halka Açık")]
+        [Display(Name = "Herkese Açık")]
         [JsonPropertyName("isPublic")]
         public bool IsPublic { get; set; } = true;
         
@@ -72,34 +80,30 @@ namespace EventManagement.UI.Models.Event
         [JsonPropertyName("status")]
         public EventStatus Status { get; set; } = EventStatus.Pending;
         
-        [Display(Name = "Oluşturan")]
-        [JsonPropertyName("creatorName")]
-        public string CreatorName { get; set; } = string.Empty;
-        
-        [Display(Name = "Oluşturan ID")]
-        [JsonPropertyName("creatorId")]
-        public Guid CreatorId { get; set; }
-        
-        [Display(Name = "Kayıt Sayısı")]
-        [JsonPropertyName("registrationCount")]
-        public int RegistrationCount { get; set; }
-        
         [Display(Name = "Oluşturulma Tarihi")]
         [JsonPropertyName("createdDate")]
         public DateTime CreatedDate { get; set; }
+        
+        [Display(Name = "Oluşturan")]
+        [JsonPropertyName("createdBy")]
+        public string CreatedBy { get; set; } = string.Empty;
+        
+        [Display(Name = "Oluşturan ID")]
+        [JsonPropertyName("creatorId")]
+        public string CreatorId { get; set; } = string.Empty;
+        
+        [Display(Name = "Kiracı Adı")]
+        [JsonPropertyName("tenantName")]
+        public string TenantName { get; set; } = string.Empty;
+        
+        [JsonIgnore]
+        [Display(Name = "Tenant Subdomain")]
+        public string TenantSubdomain { get; set; } = string.Empty;
         
         [JsonIgnore]
         public string StatusClass { get; set; } = string.Empty;
         
         [JsonIgnore]
         public string StatusText { get; set; } = string.Empty;
-        
-        [JsonIgnore]
-        [Display(Name = "Tenant")]
-        public string TenantName { get; set; } = string.Empty;
-        
-        [JsonIgnore]
-        [Display(Name = "Tenant Subdomain")]
-        public string TenantSubdomain { get; set; } = string.Empty;
     }
 } 

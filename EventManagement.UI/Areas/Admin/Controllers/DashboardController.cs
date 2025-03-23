@@ -160,7 +160,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                             // Durum sınıfını ve metnini belirle
                             if (eventItem.Status == EventStatus.Active)
                             {
-                                eventItem.StatusClass = "success";
+                                eventItem.Status = EventStatus.Approved;
                                 eventItem.StatusText = "Aktif";
                             }
                             else if (eventItem.Status == EventStatus.Draft)

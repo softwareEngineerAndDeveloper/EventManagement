@@ -1,0 +1,176 @@
+@using System.Globalization
+@model List<EventManagement.UI.Models.Role.RoleViewModel>
+
+@{
+    ViewData["Title"] = "Roller";
+    var culture = CultureInfo.CurrentCulture;
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Roller</h1>
+    <p class="mb-4">Sistem rolleri listesi ve yönetimi</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Roller</h6>
+            <a href="@Url.Action("Create", "Role")" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Yeni Rol Ekle
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="rolesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Rol Adı</th>
+                            <th>Açıklama</th>
+                            <th>Oluşturulma Tarihi</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var role in Model)
+                            {
+                                <tr>
+                                    <td>@role.Name</td>
+                                    <td>@role.Description</td>
+                                    <td>@role.CreatedAt.ToString("dd.MM.yyyy HH:mm", culture)</td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm edit-role" 
+                                                data-id="@role.Id" 
+                                                data-name="@role.Name" 
+                                                data-description="@role.Description">
+                                            <i class="fas fa-edit"></i> Düzenle
+                                        </button>
+                                        <a href="@Url.Action("Delete", "Role", new { id = role.Id })" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Sil
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center">Kayıt bulunamadı</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Role Modal -->
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRoleModalLabel">Rol Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editRoleForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="roleId" name="Id" />
+                    <div class="mb-3">
+                        <label for="roleName" class="form-label">Rol Adı</label>
+                        <input type="text" class="form-control" id="roleName" name="Name" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="roleDescription" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="roleDescription" name="Description" readonly></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="saveRoleChanges">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable
+            $('#rolesTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Turkish.json"
+                }
+            });
+            
+            // Düzenle butonuna tıklandığında
+            $(document).on('click', '.edit-role', function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var description = $(this).data('description');
+                
+                // Modalı doldur
+                $('#roleId').val(id);
+                $('#roleName').val(name);
+                $('#roleDescription').val(description);
+                
+                // Modalı göster
+                $('#editRoleModal').modal('show');
+            });
+            
+            // Kaydet butonuna tıklandığında
+            $('#saveRoleChanges').click(function() {
+                var id = $('#roleId').val();
+                var name = $('#roleName').val();
+                var description = $('#roleDescription').val();
+                
+                if (!name) {
+                    alert('Rol adı boş olamaz!');
+                    return;
+                }
+                
+                // AJAX ile gönder
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("EditViaModal", "Role")',
+                    data: {
+                        Id: id,
+                        Name: name,
+                        Description: description,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Başarılı ise modalı kapat ve sayfayı yenile
+                            $('#editRoleModal').modal('hide');
+                            // Başarı mesajını göster ve sayfayı yenile
+                            alert(response.message || 'Rol başarıyla güncellendi');
+                            location.reload();
+                        } else {
+                            // Hata varsa göster
+                            alert('Hata: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Bir hata oluştu: ' + error);
+                    }
+                });
+            });
+        });
+    </script>
+} 

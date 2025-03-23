@@ -27,7 +27,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Index: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.GetAsync<List<EventViewModel>>("api/events", token);
@@ -52,7 +52,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Details: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.GetAsync<EventViewModel>($"api/events/{id}", token);
@@ -89,7 +89,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
 
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Create POST: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 if (string.IsNullOrEmpty(token))
@@ -122,7 +122,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Edit GET: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.GetAsync<EventViewModel>($"api/events/{id}", token);
@@ -172,7 +172,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
 
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Edit POST: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.PutAsync<EventViewModel>($"api/events/{id}", model, token);
@@ -198,7 +198,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Delete GET: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.GetAsync<EventViewModel>($"api/events/{id}", token);
@@ -225,7 +225,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 _logger.LogInformation("Delete POST: Token alındı: {0}", !string.IsNullOrEmpty(token));
                 
                 var response = await _apiService.DeleteAsync<bool>($"api/events/{id}", token);
@@ -250,7 +250,7 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View(new EventManagement.UI.Models.Shared.ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 } 

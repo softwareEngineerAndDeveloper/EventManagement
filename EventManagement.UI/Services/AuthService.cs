@@ -1,12 +1,15 @@
 using EventManagement.UI.Models.Auth;
 using EventManagement.UI.Models.Shared;
-using EventManagement.UI.Services.Interfaces;
+using EventManagement.UI.Models.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Security.AccessControl;
+using EventManagement.UI.Services.Interfaces;
+using System.Text;
 
 namespace EventManagement.UI.Services
 {
@@ -22,7 +25,7 @@ namespace EventManagement.UI.Services
             _apiService = apiService;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
-            _authEndpoint = _configuration["ApiSettings:Endpoints:Auth"] ?? "api/auth";
+            _authEndpoint = _configuration["ApiEndpoints:Auth"] ?? "api/auth";
         }
 
         public async Task<ApiResponse<LoginResponseModel>> LoginAsync(LoginViewModel model)
@@ -217,39 +220,32 @@ namespace EventManagement.UI.Services
 
         public async Task<ApiResponse<bool>> RegisterAsync(RegisterViewModel model)
         {
-            return await _apiService.PostAsync<bool>($"{_authEndpoint}/register", model);
+            try
+            {
+                // Doğrudan modeli post et, content dönüşümünü API servisi halledecek
+                var response = await _apiService.PostAsync<bool>($"{_authEndpoint}/register", model);
+                
+                if (response.IsSuccess)
+                {
+                    return new ApiResponse<bool> { Success = true, Message = "Kayıt başarılı", Data = true };
+                }
+                
+                return new ApiResponse<bool> { Success = false, Message = response.Message, Data = false };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<bool> { Success = false, Message = ex.Message, Data = false };
+            }
         }
 
-        public string? GetTokenAsync()
+        public async Task<string?> GetTokenAsync()
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return null;
-
-            // Önce Claims içinden token'ı almayı dene
-            var tokenClaim = context.User.Claims.FirstOrDefault(c => c.Type == "Token");
-            if (tokenClaim != null && !string.IsNullOrEmpty(tokenClaim.Value))
-            {
-                return tokenClaim.Value;
-            }
-            
-            // Claims'de bulunamazsa Session'dan almayı dene
-            var sessionToken = context.Session.GetString("AuthToken");
-            if (!string.IsNullOrEmpty(sessionToken))
-            {
-                // Session'da bulunduğunda loglama yap
-                Console.WriteLine($"Token session'dan alındı: {sessionToken.Substring(0, Math.Min(sessionToken.Length, 20))}...");
-                return sessionToken;
-            }
-            
-            // Her iki yöntemle de bulunamazsa null döndür
-            Console.WriteLine("Token bulunamadı. Claims ve Session'da mevcut değil.");
-            return null;
+            return _httpContextAccessor.HttpContext?.User?.FindFirst("Token")?.Value;
         }
 
-        public bool IsAuthenticatedAsync()
+        public async Task<bool> IsAuthenticatedAsync()
         {
-            var context = _httpContextAccessor.HttpContext;
-            return context?.User.Identity?.IsAuthenticated ?? false;
+            return _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
         }
 
         public async Task<bool> LogoutAsync()
@@ -272,49 +268,27 @@ namespace EventManagement.UI.Services
             return true;
         }
 
-        public bool IsInRoleAsync(string role)
+        public async Task<bool> IsInRoleAsync(string role)
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return false;
-
-            return context.User.IsInRole(role);
+            return _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;
         }
 
-        public List<string> GetUserRolesAsync()
+        public async Task<List<string>> GetUserRolesAsync()
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return new List<string>();
-
-            var roleClaims = context.User.Claims.Where(c => c.Type == ClaimTypes.Role).ToList();
-            return roleClaims.Select(c => c.Value).ToList();
+            var roles = _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? new List<string>();
+            return roles;
         }
 
-        public Guid GetCurrentUserIdAsync()
+        public async Task<Guid> GetCurrentUserIdAsync()
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return Guid.Empty;
-
-            var userIdClaim = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
-            {
-                return Guid.Empty;
-            }
-
-            return userId;
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return userId != null ? Guid.Parse(userId) : Guid.Empty;
         }
 
-        public Guid GetCurrentTenantIdAsync()
+        public async Task<Guid> GetCurrentTenantIdAsync()
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return Guid.Empty;
-
-            var tenantIdClaim = context.User.Claims.FirstOrDefault(c => c.Type == "TenantId");
-            if (tenantIdClaim == null || !Guid.TryParse(tenantIdClaim.Value, out Guid tenantId))
-            {
-                return Guid.Empty;
-            }
-
-            return tenantId;
+            var tenantId = _httpContextAccessor.HttpContext?.User?.FindFirst("TenantId")?.Value;
+            return tenantId != null ? Guid.Parse(tenantId) : Guid.Empty;
         }
 
         private async Task CreateAuthenticationCookieAsync(LoginResponseModel model)
@@ -360,6 +334,124 @@ namespace EventManagement.UI.Services
             {
                 Console.WriteLine("HttpContext null, oturum oluşturulamadı");
             }
+        }
+
+        public async Task<ResponseModel<string>> LoginAsync(string email, string password)
+        {
+            try
+            {
+                var loginViewModel = new LoginViewModel
+                {
+                    Email = email,
+                    Password = password
+                };
+                
+                var response = await LoginAsync(loginViewModel);
+                
+                if (response.Success && response.Data != null)
+                {
+                    // Mevcut login metodundaki işlemleri yapıp token'ı döndür
+                    return ResponseModel<string>.Success(response.Data.Token, "Giriş başarılı");
+                }
+                
+                return ResponseModel<string>.Fail(response.Message ?? "Giriş yapılamadı");
+            }
+            catch (Exception ex)
+            {
+                return ResponseModel<string>.Fail($"Giriş yapılırken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<ResponseModel<bool>> RegisterAsync(UserRegistrationViewModel model)
+        {
+            try
+            {
+                // RegisterViewModel'e dönüştür
+                var registerViewModel = new RegisterViewModel
+                {
+                    Email = model.Email,
+                    Password = model.Password,
+                    ConfirmPassword = model.ConfirmPassword,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    TenantId = model.TenantId.ToString() // Guid'i string'e dönüştür
+                };
+                
+                var result = await RegisterAsync(registerViewModel);
+                
+                return new ResponseModel<bool>
+                {
+                    IsSuccess = result.Success,
+                    Message = result.Message,
+                    Data = result.Success
+                };
+            }
+            catch (Exception ex)
+            {
+                return ResponseModel<bool>.Fail($"Kayıt yapılırken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<ResponseModel<bool>> ChangePasswordAsync(ChangePasswordViewModel model, string token)
+        {
+            try
+            {
+                // Şifre değiştirme işlemini API'ye yap
+                var endpoint = $"api/auth/change-password";
+                var response = await _apiService.PostHttpResponseAsync(endpoint, model, token);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return ResponseModel<bool>.Success(true, "Şifre başarıyla değiştirildi");
+                }
+                
+                var content = await response.Content.ReadAsStringAsync();
+                return ResponseModel<bool>.Fail($"Şifre değiştirilemedi: {content}");
+            }
+            catch (Exception ex)
+            {
+                return ResponseModel<bool>.Fail($"Şifre değiştirilirken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<ResponseModel<EventManagement.UI.Models.User.UserViewModel>> GetCurrentUserAsync(string token)
+        {
+            try
+            {
+                var endpoint = "api/users/me";
+                var response = await _apiService.GetHttpResponseAsync(endpoint, token);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<ApiWrapper<EventManagement.UI.Models.User.UserViewModel>>(content);
+                    
+                    if (result != null && result.IsSuccess)
+                    {
+                        return ResponseModel<EventManagement.UI.Models.User.UserViewModel>.Success(result.Data);
+                    }
+                    
+                    return ResponseModel<EventManagement.UI.Models.User.UserViewModel>.Fail(result?.Message ?? "Kullanıcı bilgileri alınamadı");
+                }
+                
+                return ResponseModel<EventManagement.UI.Models.User.UserViewModel>.Fail($"Kullanıcı bilgileri alınamadı: {response.StatusCode}");
+            }
+            catch (Exception ex)
+            {
+                return ResponseModel<EventManagement.UI.Models.User.UserViewModel>.Fail($"Kullanıcı bilgileri alınırken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        private class ApiWrapper<T>
+        {
+            [JsonProperty("isSuccess")]
+            public bool IsSuccess { get; set; }
+            
+            [JsonProperty("message")]
+            public string Message { get; set; }
+            
+            [JsonProperty("data")]
+            public T Data { get; set; }
         }
     }
 } 

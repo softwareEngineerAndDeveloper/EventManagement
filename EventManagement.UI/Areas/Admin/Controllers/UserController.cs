@@ -1,5 +1,6 @@
 using EventManagement.UI.Models;
 using EventManagement.UI.Models.User;
+using EventManagement.UI.Models.Tenant;
 using EventManagement.UI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,10 +31,10 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 
                 // Önce tüm tenant'ları al
-                var tenantsResult = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+                var tenantsResult = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
                 
                 if (!tenantsResult.Success || tenantsResult.Data == null)
                 {
@@ -41,7 +42,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     TempData["ErrorMessage"] = "Tenant listesi alınamadı. Kullanıcı bilgileri eksik olabilir.";
                 }
                 
-                var tenants = tenantsResult.Success ? tenantsResult.Data : new List<Models.Tenant.TenantViewModel>();
+                var tenants = tenantsResult.Success ? tenantsResult.Data : new List<TenantViewModel>();
                 _logger.LogInformation("Toplam {0} tenant bulundu", tenants.Count);
                 
                 // Tüm rolleri bir kere al
@@ -162,7 +163,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.GetAsync<List<UserListViewModel>>("api/users", token);
 
                 if (!result.Success)
@@ -184,7 +185,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.GetAsync<UserDetailViewModel>($"api/users/{id}", token);
 
                 if (!result.Success)
@@ -206,7 +207,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.GetAsync<List<RoleViewModel>>("api/roles", token);
 
                 if (!result.Success)
@@ -238,7 +239,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     });
                 }
 
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.PostAsync<UserDetailViewModel>("api/users", model, token);
 
                 if (!result.Success)
@@ -271,7 +272,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     });
                 }
 
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.PutAsync<UserDetailViewModel>($"api/users/{model.Id}", model, token);
 
                 if (!result.Success)
@@ -303,7 +304,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
                     RoleIds = roleIds
                 };
 
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.PostAsync<bool>($"api/users/{userId}/roles", model, token);
 
                 if (!result.Success)
@@ -326,8 +327,12 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
-                var result = await _apiService.DeleteAsync<bool>($"api/users/{id}", token);
+                var token = await _authService.GetTokenAsync();
+                
+                // Kullanıcının admin olup olmadığını kontrol et
+                bool isAdmin = User.IsInRole("Admin");
+                
+                var result = await _apiService.DeleteAsync<bool>($"api/users/{id}?isAdmin={isAdmin}", token);
 
                 if (!result.Success)
                 {
@@ -349,7 +354,7 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.GetAsync<List<Guid>>($"api/roles/user/{id}", token);
 
                 if (!result.Success)
@@ -371,8 +376,8 @@ namespace EventManagement.UI.Areas.Admin.Controllers
         {
             try
             {
-                var token = _authService.GetTokenAsync();
-                var result = await _apiService.GetAsync<List<Models.Tenant.TenantViewModel>>("api/tenants", token);
+                var token = await _authService.GetTokenAsync();
+                var result = await _apiService.GetAsync<List<TenantViewModel>>("api/tenants", token);
 
                 if (!result.Success)
                 {

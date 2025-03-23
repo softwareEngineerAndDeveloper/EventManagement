@@ -30,7 +30,17 @@ namespace EventManagement.API.Controllers
         {
             var userId = GetUserId();
             var tenantId = GetTenantId();
-            var result = await _userService.GetUserByIdAsync(userId, tenantId);
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            var result = await _userService.GetUserByIdAsync(userId, tenantId, isAdmin);
+            
+            if (!result.IsSuccess)
+            {
+                return NotFound(result);
+            }
+            
             return Ok(result);
         }
         
@@ -39,6 +49,17 @@ namespace EventManagement.API.Controllers
         {
             var userId = GetUserId();
             var tenantId = GetTenantId();
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            // Kullanıcının varlığını kontrol et
+            var user = await _userService.GetUserByIdAsync(userId, tenantId, isAdmin);
+            if (!user.IsSuccess)
+            {
+                return NotFound(user);
+            }
+            
             var result = await _userService.UpdateUserAsync(userId, updateUserDto, tenantId);
             return Ok(result);
         }
@@ -47,7 +68,17 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<ResponseDto<UserDto>>> GetUserById(Guid id)
         {
             var tenantId = GetTenantId();
-            var result = await _userService.GetUserByIdAsync(id, tenantId);
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            var result = await _userService.GetUserByIdAsync(id, tenantId, isAdmin);
+            
+            if (!result.IsSuccess)
+            {
+                return NotFound(result);
+            }
+            
             return Ok(result);
         }
         
@@ -55,6 +86,17 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<ResponseDto<UserDto>>> UpdateUser(Guid id, UpdateUserDto updateUserDto)
         {
             var tenantId = GetTenantId();
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            // Kullanıcının varlığını kontrol et
+            var user = await _userService.GetUserByIdAsync(id, tenantId, isAdmin);
+            if (!user.IsSuccess)
+            {
+                return NotFound(user);
+            }
+            
             var result = await _userService.UpdateUserAsync(id, updateUserDto, tenantId);
             return Ok(result);
         }
@@ -63,15 +105,34 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<ResponseDto<bool>>> DeleteUser(Guid id)
         {
             var tenantId = GetTenantId();
-            var result = await _userService.DeleteUserAsync(id, tenantId);
-            return Ok(result);
+            
+            // Admin rolünü kontrol et
+            bool isAdmin = User.IsInRole("Admin");
+            
+            var result = await _userService.DeleteUserAsync(id, tenantId, isAdmin);
+            
+            if (!result.IsSuccess)
+            {
+                if (result.Message.Contains("bulunamadı"))
+                {
+                    return NotFound(result); // 404 Not Found
+                }
+                
+                return BadRequest(result); // 400 Bad Request
+            }
+            
+            return Ok(result); // 200 OK
         }
         
         [HttpGet("{id}/roles")]
         public async Task<ActionResult<ResponseDto<List<Guid>>>> GetUserRoles(Guid id)
         {
             var tenantId = GetTenantId();
-            var user = await _userService.GetUserByIdAsync(id, tenantId);
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            var user = await _userService.GetUserByIdAsync(id, tenantId, isAdmin);
             
             if (!user.IsSuccess)
             {
@@ -87,8 +148,11 @@ namespace EventManagement.API.Controllers
         {
             var tenantId = GetTenantId();
             
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
             // Kullanıcı mevcut mu diye kontrol et
-            var userResult = await _userService.GetUserByIdAsync(id, tenantId);
+            var userResult = await _userService.GetUserByIdAsync(id, tenantId, isAdmin);
             if (!userResult.IsSuccess)
             {
                 return NotFound(ResponseDto<bool>.Fail("Kullanıcı bulunamadı"));

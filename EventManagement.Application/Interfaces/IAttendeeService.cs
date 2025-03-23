@@ -13,7 +13,7 @@ namespace EventManagement.Application.Interfaces
         /// <summary>
         /// Etkinliğe ait tüm katılımcıları getirir
         /// </summary>
-        Task<ResponseDto<List<AttendeeDto>>> GetAttendeesByEventIdAsync(Guid eventId, Guid tenantId);
+        Task<ResponseDto<List<AttendeeDto>>> GetAttendeesByEventIdAsync(Guid eventId, Guid tenantId, bool isAdmin = false);
         
         /// <summary>
         /// ID'ye göre katılımcı bilgisini getirir
@@ -48,6 +48,6 @@ namespace EventManagement.Application.Interfaces
         /// <summary>
         /// Etkinlik istatistiklerini getirir
         /// </summary>
-        Task<ResponseDto<EventStatisticsDto>> GetEventStatisticsAsync(Guid eventId, Guid tenantId);
+        Task<ResponseDto<EventStatisticsDto>> GetEventStatisticsAsync(Guid eventId, Guid tenantId, bool isAdmin = false);
     }
 } 

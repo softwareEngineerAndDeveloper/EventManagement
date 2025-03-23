@@ -5,7 +5,7 @@ namespace EventManagement.Application.Interfaces
     public interface IEventService
     {
         Task<ResponseDto<List<EventDto>>> GetAllEventsAsync(Guid tenantId);
-        Task<ResponseDto<EventDto>> GetEventByIdAsync(Guid id, Guid tenantId);
+        Task<ResponseDto<EventDto>> GetEventByIdAsync(Guid id, Guid tenantId, bool isAdmin = false);
         Task<ResponseDto<List<EventDto>>> GetUpcomingEventsAsync(Guid tenantId);
         Task<ResponseDto<List<EventDto>>> GetPendingEventsAsync(Guid tenantId);
         Task<ResponseDto<EventDto>> CreateEventAsync(CreateEventDto createEventDto, Guid tenantId);

@@ -101,7 +101,7 @@
                         <dd class="col-sm-8">@eventModel?.Location</dd>
                         
                         <dt class="col-sm-4">Kapasite</dt>
-                        <dd class="col-sm-8">@(eventModel?.MaxAttendees.HasValue == true ? eventModel?.MaxAttendees.Value.ToString() : "Sınırsız")</dd>
+                        <dd class="col-sm-8">@(eventModel?.MaxAttendees > 0 ? eventModel?.MaxAttendees.ToString() : "Sınırsız")</dd>
                         
                         <dt class="col-sm-4">Kayıt Sayısı</dt>
                         <dd class="col-sm-8">@eventModel?.RegistrationCount</dd>
@@ -314,142 +314,90 @@
 </div>
 
 @section Scripts {
-    <!-- Sweet Alert -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <script>
         $(document).ready(function() {
             $('#attendeesTable').DataTable({
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
-                    emptyTable: "Bu etkinlik için katılımcı bulunamadı.",
-                    zeroRecords: "Eşleşen katılımcı kaydı bulunamadı",
-                    info: "_TOTAL_ katılımcıdan _START_ - _END_ arası gösteriliyor",
-                    infoEmpty: "Kayıt bulunamadı",
-                    infoFiltered: "(_MAX_ kayıt arasından filtrelendi)"
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json'
                 },
-                dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-                     "<'row'<'col-sm-12'tr>>" +
-                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-                responsive: true,
-                ordering: true,
+                processing: true,
                 paging: true,
-                pageLength: 10,
-                lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Tümü"]],
-                columns: [
-                    { data: "name" },
-                    { data: "email" },
-                    { data: "phone" },
-                    { data: "status" },
-                    { data: "hasAttended" },
-                    { data: "sendEmailNotification" },
-                    { data: "registrationDate" },
-                    { data: "actions", orderable: false, searchable: false }
-                ]
+                pagingType: "full_numbers",
+                stateSave: false, // Sayfa yenilenmelerinde sorun çıkmaması için 
+                columnDefs: [
+                    { orderable: true, targets: [0, 1, 2, 3, 4, 5, 6] },
+                    { orderable: false, targets: [7] } // İşlemler sütunu sıralanamaz
+                ],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excel',
+                        text: 'Excel\'e Aktar',
+                        className: 'btn btn-sm btn-success mb-2',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        text: 'PDF\'e Aktar',
+                        className: 'btn btn-sm btn-danger mb-2',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        }
+                    }
+                ],
+                order: [[6, 'desc']], // Kayıt tarihine göre sırala (en son kayıt en üstte)
+                // Tablo boşsa veya sorun yaşanırsa hataları engelle
+                initComplete: function(settings, json) {
+                    // DataTable uyarılarını kontrol et ve temizle
+                    if (window.console && console.clear) {
+                        console.clear();
+                    }
+                    
+                    // Responsive davranış için
+                    $(window).resize(function() {
+                        $('#attendeesTable').DataTable().columns.adjust().responsive.recalc();
+                    });
+                }
             });
-            
-            // Başarılı mesajı kontrolü
-            @if (TempData["SuccessMessage"] != null && TempData["EmailSent"] != null)
-            {
-                <text>
-                Swal.fire({
-                    title: 'Başarılı!',
-                    html: '@TempData["SuccessMessage"]<br><br><strong>E-posta bildirimi gönderildi!</strong><br>Alıcı: @TempData["EmailAddress"]<br>Konu: @TempData["EmailSubject"]',
-                    icon: 'success',
-                    confirmButtonText: 'Tamam'
-                });
-                </text>
-            }
-            
-            // E-posta zaten kayıtlı kontrolü
-            @if (TempData["EmailExists"] != null && (bool)TempData["EmailExists"] == true)
-            {
-                <text>
-                Swal.fire({
-                    title: 'Uyarı!',
-                    html: 'Bu e-posta adresi zaten etkinliğe kayıtlı:<br><strong>@TempData["ExistingEmail"]</strong>',
-                    icon: 'info',
-                    confirmButtonText: 'Tamam'
-                });
-                </text>
-            }
         });
         
-        // Katılımcı ekleme formunu gönderen fonksiyon
+        // Form doğrulama ve gönderme işlevi
         function submitAttendeeForm() {
-            // Form verilerini al
-            var form = $('#addAttendeeForm');
-            var email = $('#Email').val();
-            var eventId = '@eventId';
-            var sendEmail = $('#SendEmailNotification').is(':checked');
+            var form = document.getElementById('addAttendeeForm');
             
-            // Önce bu e-posta etkinlikte kayıtlı mı kontrol et
-            checkEmailExists(email, eventId, function(exists) {
-                if (exists) {
-                    // E-posta zaten kayıtlı, uyarı göster
-                    Swal.fire({
-                        title: 'Uyarı!',
-                        html: 'Bu e-posta adresi zaten etkinliğe kayıtlı:<br><strong>' + email + '</strong>',
-                        icon: 'info',
-                        confirmButtonText: 'Tamam'
-                    });
-                } else {
-                    // E-posta kayıtlı değil, devam et
-                    
-                    // Eğer e-posta bildirimi işaretli ise simüle et
-                    if (sendEmail) {
-                        // Loading göster
-                        Swal.fire({
-                            title: 'E-posta gönderiliyor...',
-                            html: 'Lütfen bekleyin',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-                    }
-                    
-                    // Formu normal şekilde gönder
-                    form.submit();
-                }
-            });
-        }
-        
-        // E-posta adresinin etkinlikte kayıtlı olup olmadığını kontrol eden fonksiyon
-        function checkEmailExists(email, eventId, callback) {
-            // Tabloda zaten varsa
-            var exists = false;
-            $('#attendeesTable tbody tr').each(function() {
-                var rowEmail = $(this).find('td:eq(1)').text(); // E-posta 2. sütunda
-                if (rowEmail.toLowerCase() === email.toLowerCase()) {
-                    exists = true;
-                    return false; // döngüden çık
-                }
-            });
-            
-            callback(exists);
-        }
-
-        function submitUpdateForm(id, eventId, email) {
-            // Form verilerini al
-            var form = $('#updateModal-' + id).find('form');
-            var sendEmail = $('#sendEmailNotification-' + id).is(':checked');
-            
-            // Eğer e-posta bildirimi işaretli ise simüle et
-            if (sendEmail) {
-                // Loading göster
-                Swal.fire({
-                    title: 'E-posta gönderiliyor...',
-                    html: 'Lütfen bekleyin',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+            // Basit form doğrulaması
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
             }
             
-            // Formu normal şekilde gönder
+            // Form geçerliyse gönder
             form.submit();
+        }
+        
+        // Katılımcı silme onay kutucuğu
+        function confirmDelete(id, name) {
+            if (confirm(name + ' adlı katılımcıyı silmek istediğinize emin misiniz?')) {
+                document.getElementById('deleteForm_' + id).submit();
+            }
+        }
+        
+        // Katılımcı durumunu güncelleme işlevi
+        function updateStatus(id, currentStatus) {
+            var newStatus = document.getElementById('status_' + id).value;
+            var hasAttended = document.getElementById('hasAttended_' + id).checked;
+            var sendEmail = document.getElementById('sendEmail_' + id).checked;
+            
+            // Durum değişmediyse güncelleme yapma
+            if (newStatus == currentStatus && !hasAttended && !sendEmail) {
+                alert('Herhangi bir değişiklik yapmadınız.');
+                return;
+            }
+            
+            // Durum değiştiyse formu gönder
+            document.getElementById('statusForm_' + id).submit();
         }
     </script>
 } 

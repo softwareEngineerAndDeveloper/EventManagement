@@ -1,0 +1,228 @@
+@model List<EventManagement.UI.Models.Attendee.AttendeeViewModel>
+
+@{
+    ViewData["Title"] = "Katılımcılar";
+    Layout = "_LayoutAdmin";
+}
+
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Katılımcılar</h1>
+    <p class="mb-4">Tüm etkinliklere ait katılımcıların listesi</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Katılımcı Listesi</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="attendeesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Ad Soyad</th>
+                            <th>E-posta</th>
+                            <th>Telefon</th>
+                            <th>Durum</th>
+                            <th>Etkinlik</th>
+                            <th>Kayıt Tarihi</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var attendee in Model)
+                            {
+                                <tr>
+                                    <td>@attendee.Name</td>
+                                    <td>@attendee.Email</td>
+                                    <td>@attendee.Phone</td>
+                                    <td>
+                                        @switch (attendee.Status)
+                                        {
+                                            case EventManagement.UI.Models.Attendee.AttendeeStatus.Registered:
+                                                <span class="badge bg-warning">Kayıtlı</span>
+                                                break;
+                                            case EventManagement.UI.Models.Attendee.AttendeeStatus.Confirmed:
+                                                <span class="badge bg-success">Onaylandı</span>
+                                                break;
+                                            case EventManagement.UI.Models.Attendee.AttendeeStatus.Cancelled:
+                                                <span class="badge bg-danger">İptal Edildi</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">Bilinmiyor</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>@attendee.EventName</td>
+                                    <td>@attendee.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>
+                                        <button type="button" class="btn btn-info btn-sm show-details" 
+                                                data-id="@attendee.Id"
+                                                data-name="@attendee.Name"
+                                                data-email="@attendee.Email"
+                                                data-phone="@attendee.Phone"
+                                                data-status="@((int)attendee.Status)"
+                                                data-event-name="@attendee.EventName"
+                                                data-event-id="@attendee.EventId"
+                                                data-created-at="@attendee.CreatedAt.ToString("dd.MM.yyyy HH:mm")"
+                                                data-has-attended="@attendee.HasAttended.ToString().ToLower()"
+                                                data-notes="@(attendee.Notes ?? "")">
+                                            <i class="fas fa-info-circle"></i> Detay
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center">Kayıtlı katılımcı bulunamadı.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Katılımcı Detay Modal -->
+<div class="modal fade" id="attendeeDetailModal" tabindex="-1" aria-labelledby="attendeeDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendeeDetailModalLabel">Katılımcı Detayları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Katılımcı Bilgileri</h6>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="fw-bold">Ad Soyad:</label>
+                            <div id="attendeeName"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">E-posta:</label>
+                            <div id="attendeeEmail"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Telefon:</label>
+                            <div id="attendeePhone"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Durum:</label>
+                            <div id="attendeeStatus"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Katılım Durumu:</label>
+                            <div id="attendeeHasAttended"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Etkinlik Bilgileri</h6>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="fw-bold">Etkinlik Adı:</label>
+                            <div id="eventName"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Kayıt Tarihi:</label>
+                            <div id="attendeeCreatedAt"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="fw-bold">Notlar:</label>
+                            <div id="attendeeNotes" class="p-2 bg-light rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // DataTable başlatma
+            $('#attendeesTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Turkish.json"
+                }
+            });
+            
+            // Detay butonu tıklama olayı
+            $('.show-details').click(function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var email = $(this).data('email');
+                var phone = $(this).data('phone');
+                var status = parseInt($(this).data('status'));
+                var eventName = $(this).data('event-name');
+                var eventId = $(this).data('event-id');
+                var createdAt = $(this).data('created-at');
+                var hasAttended = $(this).data('has-attended') === 'true';
+                var notes = $(this).data('notes');
+                
+                // Modal içeriğini doldur
+                $('#attendeeName').text(name);
+                $('#attendeeEmail').text(email);
+                $('#attendeePhone').text(phone);
+                
+                // Durum bilgisini ayarla
+                var statusHtml = '';
+                switch(status) {
+                    case 0:
+                        statusHtml = '<span class="badge bg-warning">Kayıtlı</span>';
+                        break;
+                    case 1:
+                        statusHtml = '<span class="badge bg-success">Onaylandı</span>';
+                        break;
+                    case 2:
+                        statusHtml = '<span class="badge bg-danger">İptal Edildi</span>';
+                        break;
+                    default:
+                        statusHtml = '<span class="badge bg-secondary">Bilinmiyor</span>';
+                }
+                $('#attendeeStatus').html(statusHtml);
+                
+                // Katılım durumunu ayarla
+                $('#attendeeHasAttended').text(hasAttended ? 'Katıldı' : 'Katılmadı');
+                
+                // Etkinlik bilgilerini ayarla
+                $('#eventName').text(eventName);
+                $('#attendeeCreatedAt').text(createdAt);
+                
+                // Notları ayarla
+                $('#attendeeNotes').html(notes ? notes : 'Not bulunmuyor');
+                
+                // Modalı göster
+                $('#attendeeDetailModal').modal('show');
+            });
+        });
+    </script>
+} 

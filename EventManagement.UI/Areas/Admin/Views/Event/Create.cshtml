@@ -1,9 +1,10 @@
-@model EventManagement.UI.Models.Event.EventViewModel
+@using EventManagement.UI.Models.Tenant
+@model EventManagement.UI.Models.Event.EventCreateViewModel
 
 @{
     ViewData["Title"] = "Yeni Etkinlik Oluştur";
     Layout = "_LayoutAdmin";
-    var tenants = ViewBag.Tenants as List<EventManagement.UI.Models.Tenant.TenantViewModel> ?? new List<EventManagement.UI.Models.Tenant.TenantViewModel>();
+    var tenants = ViewBag.Tenants as List<TenantViewModel> ?? new List<TenantViewModel>();
 }
 
 <div class="container-fluid">

@@ -25,20 +25,21 @@ namespace EventManagement.Application.Services
         /// <summary>
         /// Etkinliğe ait tüm katılımcıları getirir
         /// </summary>
-        public async Task<ResponseDto<List<AttendeeDto>>> GetAttendeesByEventIdAsync(Guid eventId, Guid tenantId)
+        public async Task<ResponseDto<List<AttendeeDto>>> GetAttendeesByEventIdAsync(Guid eventId, Guid tenantId, bool isAdmin = false)
         {
             try
             {
                 _logger.LogInformation("Fetching attendees for event ID: {EventId}", eventId);
                 
-                // Önce etkinlik bilgisini getir ve tenant kontrolü yap
+                // Önce etkinlik bilgisini getir
                 var eventEntity = await _attendeeRepository.GetEventByIdAsync(eventId);
                 if (eventEntity == null)
                 {
                     return ResponseDto<List<AttendeeDto>>.Fail("Etkinlik bulunamadı");
                 }
                 
-                if (eventEntity.TenantId != tenantId)
+                // Admin olmayan kullanıcılar için tenant kontrolü
+                if (!isAdmin && eventEntity.TenantId != tenantId)
                 {
                     return ResponseDto<List<AttendeeDto>>.Fail("Bu etkinliğe erişim izniniz yok");
                 }
@@ -51,13 +52,12 @@ namespace EventManagement.Application.Services
                 }
                 
                 var attendeeDtos = attendees.Select(MapToAttendeeDto).ToList();
-                
                 return ResponseDto<List<AttendeeDto>>.Success(attendeeDtos);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting attendees for event ID: {EventId}", eventId);
-                return ResponseDto<List<AttendeeDto>>.Fail("Katılımcılar getirilirken bir hata oluştu");
+                _logger.LogError(ex, "Error occurred while fetching attendees for event ID: {EventId}", eventId);
+                return ResponseDto<List<AttendeeDto>>.Fail($"Katılımcılar getirilirken bir hata oluştu: {ex.Message}");
             }
         }
 
@@ -339,22 +339,23 @@ namespace EventManagement.Application.Services
         /// <summary>
         /// Etkinlik istatistiklerini getirir
         /// </summary>
-        public async Task<ResponseDto<EventStatisticsDto>> GetEventStatisticsAsync(Guid eventId, Guid tenantId)
+        public async Task<ResponseDto<EventStatisticsDto>> GetEventStatisticsAsync(Guid eventId, Guid tenantId, bool isAdmin = false)
         {
             try
             {
                 _logger.LogInformation("Getting event statistics for event ID: {EventId}", eventId);
                 
-                // Önce etkinlik bilgisini getir ve tenant kontrolü yap
+                // Önce etkinlik bilgisini getir
                 var eventEntity = await _attendeeRepository.GetEventByIdAsync(eventId);
                 if (eventEntity == null)
                 {
                     return ResponseDto<EventStatisticsDto>.Fail("Etkinlik bulunamadı");
                 }
                 
-                if (eventEntity.TenantId != tenantId)
+                // Admin olmayan kullanıcılar için tenant kontrolü
+                if (!isAdmin && eventEntity.TenantId != tenantId)
                 {
-                    return ResponseDto<EventStatisticsDto>.Fail("Bu etkinliğin istatistiklerini görüntülemek için izniniz yok");
+                    return ResponseDto<EventStatisticsDto>.Fail("Bu etkinliğe erişim izniniz yok");
                 }
                 
                 // Repository üzerinden etkinlik istatistiklerini al
@@ -364,8 +365,8 @@ namespace EventManagement.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting event statistics for event ID: {EventId}", eventId);
-                return ResponseDto<EventStatisticsDto>.Fail("Etkinlik istatistikleri getirilirken bir hata oluştu");
+                _logger.LogError(ex, "Error occured while getting event statistics. EventId: {EventId}", eventId);
+                return ResponseDto<EventStatisticsDto>.Fail($"Etkinlik istatistikleri alınırken bir hata oluştu: {ex.Message}");
             }
         }
 

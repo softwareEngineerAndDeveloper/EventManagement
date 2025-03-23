@@ -60,10 +60,24 @@ namespace EventManagement.Infrastructure.Data
                     await CreateTestUsersAsync(dbContext, defaultTenant, logger);
                 }
             }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+                {
+                    // Benzersizlik kısıtlaması hatası (duplicate key)
+                    logger.LogWarning("Veritabanı başlatılırken benzersizlik kısıtlaması hatası oluştu. Devam edilebilir: {Message}", sqlEx.Message);
+                    // Uygulama başlatılabilir, bu öldürücü bir hata değil
+                }
+                else
+                {
+                    logger.LogError(ex, "Veritabanı başlatılırken güncelleme hatası oluştu");
+                    throw; // Ciddi veritabanı hatası, uygulamayı başlatmama
+                }
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Veritabanı başlatılırken bir hata oluştu");
-                throw;
+                throw; // Genel hata, uygulamayı başlatmama
             }
         }
         
@@ -109,80 +123,116 @@ namespace EventManagement.Infrastructure.Data
         {
             logger.LogInformation("Test kullanıcıları kontrol ediliyor...");
             
-            // Admin rolünü bul
-            var adminRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Admin" && r.TenantId == tenant.Id);
-            if (adminRole == null)
+            try
             {
-                logger.LogWarning("Admin rolü bulunamadı!");
-                return;
-            }
-            
-            // Test admin kullanıcısı
-            var adminUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == "fikri@etkinlikyonetimi.com" && u.TenantId == tenant.Id);
-            if (adminUser == null)
-            {
-                adminUser = new User
+                // Admin rolünü bul
+                var adminRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Admin" && r.TenantId == tenant.Id);
+                if (adminRole == null)
                 {
-                    FirstName = "Fikri",
-                    LastName = "Yönetici",
-                    Email = "fikri@etkinlikyonetimi.com",
-                    PasswordHash = BC.HashPassword("123456"),
-                    PhoneNumber = "5551234567",
-                    TenantId = tenant.Id,
-                    IsActive = true
-                };
+                    logger.LogWarning("Admin rolü bulunamadı!");
+                    return;
+                }
                 
-                dbContext.Users.Add(adminUser);
-                await dbContext.SaveChangesAsync();
+                // Test admin kullanıcısı - fikri@etkinlikyonetimi.com
+                bool adminUserExists = await dbContext.Users.AnyAsync(u => u.Email == "admin@etkinlikyonetimi.com" && u.TenantId == tenant.Id);
                 
-                // Admin rolünü ata
-                var userRole = new UserRole
+                if (!adminUserExists)
                 {
-                    UserId = adminUser.Id,
-                    RoleId = adminRole.Id,
-                    TenantId = tenant.Id
-                };
-                
-                dbContext.UserRoles.Add(userRole);
-                await dbContext.SaveChangesAsync();
-                
-                logger.LogInformation($"Test admin kullanıcısı oluşturuldu: {adminUser.Email}");
-            }
-            
-            // EventManager kullanıcısı
-            var eventManagerRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "EventManager" && r.TenantId == tenant.Id);
-            if (eventManagerRole != null)
-            {
-                var eventManagerUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == "manager@etkinlikyonetimi.com" && u.TenantId == tenant.Id);
-                if (eventManagerUser == null)
-                {
-                    eventManagerUser = new User
+                    logger.LogInformation("Admin test kullanıcısı oluşturuluyor: admin@etkinlikyonetimi.com");
+                    
+                    var adminUser = new User
                     {
-                        FirstName = "Etkinlik",
-                        LastName = "Yöneticisi",
-                        Email = "manager@etkinlikyonetimi.com",
+                        FirstName = "Fikri",
+                        LastName = "Yönetici",
+                        Email = "admin@etkinlikyonetimi.com",
                         PasswordHash = BC.HashPassword("123456"),
-                        PhoneNumber = "5559876543",
+                        PhoneNumber = "5551234567",
                         TenantId = tenant.Id,
                         IsActive = true
                     };
                     
-                    dbContext.Users.Add(eventManagerUser);
+                    dbContext.Users.Add(adminUser);
                     await dbContext.SaveChangesAsync();
                     
-                    // EventManager rolünü ata
+                    // Admin rolünü ata
                     var userRole = new UserRole
                     {
-                        UserId = eventManagerUser.Id,
-                        RoleId = eventManagerRole.Id,
+                        UserId = adminUser.Id,
+                        RoleId = adminRole.Id,
                         TenantId = tenant.Id
                     };
                     
                     dbContext.UserRoles.Add(userRole);
                     await dbContext.SaveChangesAsync();
                     
-                    logger.LogInformation($"Test event manager kullanıcısı oluşturuldu: {eventManagerUser.Email}");
+                    logger.LogInformation($"Test admin kullanıcısı başarıyla oluşturuldu: {adminUser.Email}");
                 }
+                else
+                {
+                    logger.LogInformation("Admin test kullanıcısı zaten mevcut: admin@etkinlikyonetimi.com");
+                }
+                
+                // EventManager kullanıcısı
+                var eventManagerRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "EventManager" && r.TenantId == tenant.Id);
+                if (eventManagerRole != null)
+                {
+                    bool eventManagerUserExists = await dbContext.Users.AnyAsync(u => u.Email == "manager@etkinlikyonetimi.com" && u.TenantId == tenant.Id);
+                    
+                    if (!eventManagerUserExists)
+                    {
+                        logger.LogInformation("EventManager test kullanıcısı oluşturuluyor: manager@etkinlikyonetimi.com");
+                        
+                        var eventManagerUser = new User
+                        {
+                            FirstName = "Etkinlik",
+                            LastName = "Yöneticisi",
+                            Email = "manager@etkinlikyonetimi.com",
+                            PasswordHash = BC.HashPassword("123456"),
+                            PhoneNumber = "5559876543",
+                            TenantId = tenant.Id,
+                            IsActive = true
+                        };
+                        
+                        dbContext.Users.Add(eventManagerUser);
+                        await dbContext.SaveChangesAsync();
+                        
+                        // EventManager rolünü ata
+                        var userRole = new UserRole
+                        {
+                            UserId = eventManagerUser.Id,
+                            RoleId = eventManagerRole.Id,
+                            TenantId = tenant.Id
+                        };
+                        
+                        dbContext.UserRoles.Add(userRole);
+                        await dbContext.SaveChangesAsync();
+                        
+                        logger.LogInformation($"Test event manager kullanıcısı başarıyla oluşturuldu: {eventManagerUser.Email}");
+                    }
+                    else
+                    {
+                        logger.LogInformation("EventManager test kullanıcısı zaten mevcut: manager@etkinlikyonetimi.com");
+                    }
+                }
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+                {
+                    // Benzersizlik kısıtlaması hatası (duplicate key)
+                    logger.LogWarning("Benzersizlik kısıtlaması hatası oluştu. Muhtemelen aynı e-posta adresine sahip kullanıcı zaten var: {Message}", sqlEx.Message);
+                }
+                else
+                {
+                    // Diğer DB güncelleme hataları
+                    logger.LogError(ex, "Test kullanıcıları oluşturulurken veritabanı güncelleme hatası oluştu");
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Test kullanıcılarını oluştururken beklenmeyen bir hata oluştu");
+                throw;
             }
         }
         

@@ -1,10 +1,32 @@
 @using EventManagement.UI.Services.Interfaces
+@using System.Threading.Tasks
 
 @inject IAuthService AuthService
 
 @{
-    var isAuthenticated = AuthService.IsAuthenticatedAsync();
-    var roles = isAuthenticated ? AuthService.GetUserRolesAsync() : new List<string>();
+    // Sayfa yüklenirken çalışacak asenkron kod
+    bool isAuthenticated = false;
+    List<string> roles = new List<string>();
+    
+    // IIFE (Immediately Invoked Function Expression) tarzında asenkron çalışma
+    Func<Task> initialize = async () => {
+        try {
+            isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (isAuthenticated)
+            {
+                roles = await AuthService.GetUserRolesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Hata durumunda varsayılan değerleri koruyalım
+            isAuthenticated = false;
+            roles = new List<string>();
+        }
+    };
+    
+    // Async kod çalıştır
+    initialize().Wait();
 }
 
 <ul class="navbar-nav ms-auto">
@@ -54,11 +76,6 @@
 }
 else
 {
-    <li class="nav-item">
-        <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">
-            <i class="fas fa-user-plus me-1"></i> Kayıt Ol
-        </a>
-    </li>
     <li class="nav-item">
         <a class="nav-link btn btn-primary text-white" asp-area="" asp-controller="Account" asp-action="Login">
             <i class="fas fa-sign-in-alt me-1"></i> Giriş Yap

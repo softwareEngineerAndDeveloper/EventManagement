@@ -27,6 +27,8 @@ namespace EventManagement.UI.Models.Auth
 
         [DataType(DataType.Password)]
         [Compare("Password", ErrorMessage = "Şifreler eşleşmiyor")]
+        public required string TenantId { get; set; }
+
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 } 

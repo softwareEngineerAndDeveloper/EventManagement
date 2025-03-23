@@ -109,22 +109,22 @@
                         </div>
                         
                         <div class="text-center">
-                            <div class="h4 mb-0 text-success">@(Model.MaxAttendees.HasValue ? (Model.MaxAttendees - Model.RegistrationCount).ToString() : "∞")</div>
+                            <div class="h4 mb-0 text-success">@(Model.MaxAttendees > 0 ? (Model.MaxAttendees - Model.RegistrationCount).ToString() : "∞")</div>
                             <div class="small text-muted">Kalan Kontenjan</div>
                         </div>
                         
                         <div class="text-center">
-                            <div class="h4 mb-0 text-info">@(Model.MaxAttendees.HasValue ? $"%{Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees.Value * 100, 0)}" : "-")</div>
+                            <div class="h4 mb-0 text-info">@(Model.MaxAttendees > 0 ? $"%{Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees * 100, 0)}" : "-")</div>
                             <div class="small text-muted">Doluluk Oranı</div>
                         </div>
                     </div>
                     
-                    @if (Model.MaxAttendees.HasValue)
+                    @if (Model.MaxAttendees > 0)
                     {
                         <div class="progress mb-2" style="height: 15px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: @(Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees.Value * 100, 0))%;" 
+                            <div class="progress-bar bg-success" role="progressbar" style="width: @(Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees * 100, 0))%;" 
                                 aria-valuenow="@Model.RegistrationCount" aria-valuemin="0" aria-valuemax="@Model.MaxAttendees">
-                                @(Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees.Value * 100, 0))%
+                                @(Math.Round((decimal)Model.RegistrationCount / Model.MaxAttendees * 100, 0))%
                             </div>
                         </div>
                     }

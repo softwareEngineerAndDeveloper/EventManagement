@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace EventManagement.UI.Services
 {
@@ -24,33 +25,35 @@ namespace EventManagement.UI.Services
             _httpClient.BaseAddress = new Uri(_baseUrl);
         }
 
+        // IApiService arayüz implementasyonu - Simple metotlar
+        public async Task<HttpResponseMessage> GetAsync(string endpoint, string? token = null)
+        {
+            // HttpResponseAsync metoduna yönlendir
+            return await GetHttpResponseAsync(endpoint, token);
+        }
+
+        public async Task<HttpResponseMessage> PostAsync(string endpoint, object data, string? token = null)
+        {
+            // HttpResponseAsync metoduna yönlendir
+            return await PostHttpResponseAsync(endpoint, data, token);
+        }
+
+        public async Task<HttpResponseMessage> PutAsync(string endpoint, object data, string? token = null)
+        {
+            // HttpResponseAsync metoduna yönlendir
+            return await PutHttpResponseAsync(endpoint, data, token);
+        }
+
+        public async Task<HttpResponseMessage> DeleteAsync(string endpoint, string? token = null)
+        {
+            // HttpResponseAsync metoduna yönlendir
+            return await DeleteHttpResponseAsync(endpoint, token);
+        }
+
         public async Task<ApiResponse<T>> GetAsync<T>(string endpoint, string? token = null)
         {
-            try
-            {
-                PrepareAuthenticationHeader(token);
-                
-                _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
-                _logger.LogInformation("API İstek Hedef Tip: {Type}", typeof(T).FullName);
-                
-                var response = await _httpClient.GetAsync(endpoint);
-                
-                _logger.LogInformation("API Yanıt StatusCode: {StatusCode}", response.StatusCode);
-                
-                return await ProcessResponseAsync<T>(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "API Çağrı Hatası: {Message}", ex.Message);
-                _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
-                
-                return new ApiResponse<T>
-                {
-                    Success = false,
-                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
-            }
+            // WithHeaders metoduna yönlendir (boş headers ile)
+            return await GetAsyncWithHeaders<T>(endpoint, token, null);
         }
 
         public async Task<ApiResponse<T>> GetAsyncWithHeaders<T>(string endpoint, string? token = null, Dictionary<string, string>? customHeaders = null)
@@ -99,29 +102,8 @@ namespace EventManagement.UI.Services
 
         public async Task<ApiResponse<T>> PostAsync<T>(string endpoint, object data, string? token = null)
         {
-            try
-            {
-                PrepareAuthenticationHeader(token);
-                var json = JsonConvert.SerializeObject(data);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
-                _logger.LogInformation("İçerik: {Json}", json);
-                
-                var response = await _httpClient.PostAsync(endpoint, content);
-                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
-                
-                return await ProcessResponseAsync<T>(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
-                return new ApiResponse<T>
-                {
-                    Success = false,
-                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
-            }
+            // WithHeaders metoduna yönlendir (boş headers ile)
+            return await PostAsyncWithHeaders<T>(endpoint, data, token, null);
         }
 
         public async Task<ApiResponse<T>> PostAsyncWithHeaders<T>(string endpoint, object data, string? token = null, Dictionary<string, string>? customHeaders = null)
@@ -169,29 +151,8 @@ namespace EventManagement.UI.Services
 
         public async Task<ApiResponse<T>> PutAsync<T>(string endpoint, object data, string? token = null)
         {
-            try
-            {
-                PrepareAuthenticationHeader(token);
-                var json = JsonConvert.SerializeObject(data);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
-                _logger.LogInformation("İçerik: {Json}", json);
-                
-                var response = await _httpClient.PutAsync(endpoint, content);
-                _logger.LogInformation("Yanıt Kodu: {StatusCode}", response.StatusCode);
-                
-                return await ProcessResponseAsync<T>(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
-                return new ApiResponse<T>
-                {
-                    Success = false,
-                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
-            }
+            // WithHeaders metoduna yönlendir (boş headers ile)
+            return await PutAsyncWithHeaders<T>(endpoint, data, token, null);
         }
 
         public async Task<ApiResponse<T>> PutAsyncWithHeaders<T>(string endpoint, object data, string? token = null, Dictionary<string, string>? customHeaders = null)
@@ -239,22 +200,8 @@ namespace EventManagement.UI.Services
 
         public async Task<ApiResponse<T>> DeleteAsync<T>(string endpoint, string? token = null)
         {
-            try
-            {
-                PrepareAuthenticationHeader(token);
-                var response = await _httpClient.DeleteAsync(endpoint);
-                return await ProcessResponseAsync<T>(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "API Hatası: {Message}", ex.Message);
-                return new ApiResponse<T>
-                {
-                    Success = false,
-                    Message = $"API çağrısı sırasında hata oluştu: {ex.Message}",
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
-            }
+            // WithHeaders metoduna yönlendir (boş headers ile)
+            return await DeleteAsyncWithHeaders<T>(endpoint, token, null);
         }
 
         public async Task<ApiResponse<T>> DeleteAsyncWithHeaders<T>(string endpoint, string? token = null, Dictionary<string, string>? customHeaders = null)
@@ -464,6 +411,41 @@ namespace EventManagement.UI.Services
             
             [JsonProperty("errors")]
             public object? Errors { get; set; }
+        }
+
+        // HttpResponseMessage döndüren metotlar
+        public async Task<HttpResponseMessage> GetHttpResponseAsync(string endpoint, string? token = null)
+        {
+            PrepareAuthenticationHeader(token);
+            _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+            return await _httpClient.GetAsync(endpoint);
+        }
+
+        public async Task<HttpResponseMessage> PostHttpResponseAsync(string endpoint, object data, string? token = null)
+        {
+            PrepareAuthenticationHeader(token);
+            var json = JsonConvert.SerializeObject(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+            _logger.LogInformation("İçerik: {Json}", json);
+            return await _httpClient.PostAsync(endpoint, content);
+        }
+
+        public async Task<HttpResponseMessage> PutHttpResponseAsync(string endpoint, object data, string? token = null)
+        {
+            PrepareAuthenticationHeader(token);
+            var json = JsonConvert.SerializeObject(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            _logger.LogInformation("API İstek: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+            _logger.LogInformation("İçerik: {Json}", json);
+            return await _httpClient.PutAsync(endpoint, content);
+        }
+
+        public async Task<HttpResponseMessage> DeleteHttpResponseAsync(string endpoint, string? token = null)
+        {
+            PrepareAuthenticationHeader(token);
+            _logger.LogInformation("API İstek URL: {BaseUrl}{Endpoint}", _baseUrl, endpoint);
+            return await _httpClient.DeleteAsync(endpoint);
         }
     }
 } 

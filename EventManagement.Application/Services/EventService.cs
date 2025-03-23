@@ -31,20 +31,39 @@ namespace EventManagement.Application.Services
                 TimeSpan.FromMinutes(10));
         }
         
-        public async Task<ResponseDto<EventDto>> GetEventByIdAsync(Guid id, Guid tenantId)
+        public async Task<ResponseDto<EventDto>> GetEventByIdAsync(Guid id, Guid tenantId, bool isAdmin = false)
         {
-            string cacheKey = $"tenant:{tenantId}:event:{id}";
-            return await _cacheService.GetOrSetAsync(cacheKey, 
-                async () => {
-                    var events = await _unitOfWork.Events.FindAsync(e => e.Id == id && e.TenantId == tenantId);
-                    var @event = events.FirstOrDefault();
-                    
-                    if (@event == null)
-                        throw new NotFoundException(nameof(Event), id);
+            try 
+            {
+                string cacheKey = $"tenant:{tenantId}:event:{id}";
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        // Admin ise tenant kontrolü yapmıyoruz
+                        var events = isAdmin 
+                            ? await _unitOfWork.Events.FindAsync(e => e.Id == id)
+                            : await _unitOfWork.Events.FindAsync(e => e.Id == id && e.TenantId == tenantId);
+                            
+                        var @event = events.FirstOrDefault();
                         
-                    return ResponseDto<EventDto>.Success(MapToDto(@event));
-                }, 
-                TimeSpan.FromMinutes(15));
+                        if (@event == null)
+                        {
+                            return ResponseDto<EventDto>.Fail($"Etkinlik bulunamadı (ID: {id})");
+                        }
+                        
+                        // Admin olmayan kullanıcılar için tenant kontrolü
+                        if (!isAdmin && @event.TenantId != tenantId)
+                        {
+                            return ResponseDto<EventDto>.Fail("Bu etkinliğe erişim izniniz yok");
+                        }
+                            
+                        return ResponseDto<EventDto>.Success(MapToDto(@event));
+                    }, 
+                    TimeSpan.FromMinutes(15));
+            }
+            catch (Exception ex)
+            {
+                return ResponseDto<EventDto>.Fail($"Etkinlik bilgileri alınırken bir hata oluştu: {ex.Message}");
+            }
         }
         
         public async Task<ResponseDto<List<EventDto>>> GetUpcomingEventsAsync(Guid tenantId)
@@ -264,6 +283,110 @@ namespace EventManagement.Application.Services
                     return ResponseDto<EventStatisticsDto>.Success(statistics);
                 }, 
                 TimeSpan.FromMinutes(5));
+        }
+        
+        // Dashboard istatistikleri için eklenen metotların implementasyonu
+        public async Task<int> GetTotalEventsCountAsync(Guid? tenantId)
+        {
+            try
+            {
+                string cacheKey = tenantId.HasValue 
+                    ? $"tenant:{tenantId}:events:count:total" 
+                    : "events:count:total";
+                
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        if (tenantId.HasValue)
+                        {
+                            var events = await _unitOfWork.Events.FindAsync(e => e.TenantId == tenantId.Value);
+                            return events.Count();
+                        }
+                        else
+                        {
+                            var events = await _unitOfWork.Events.GetAllAsync();
+                            return events.Count();
+                        }
+                    }, 
+                    TimeSpan.FromMinutes(15));
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
+        }
+        
+        public async Task<int> GetActiveEventsCountAsync(Guid? tenantId)
+        {
+            try
+            {
+                string cacheKey = tenantId.HasValue 
+                    ? $"tenant:{tenantId}:events:count:active" 
+                    : "events:count:active";
+                
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        if (tenantId.HasValue)
+                        {
+                            var events = await _unitOfWork.Events.FindAsync(e => 
+                                e.TenantId == tenantId.Value && 
+                                e.StartDate <= DateTime.UtcNow && 
+                                e.EndDate >= DateTime.UtcNow && 
+                                !e.IsCancelled && 
+                                e.Status == EventStatus.Approved);
+                            return events.Count();
+                        }
+                        else
+                        {
+                            var events = await _unitOfWork.Events.FindAsync(e => 
+                                e.StartDate <= DateTime.UtcNow && 
+                                e.EndDate >= DateTime.UtcNow && 
+                                !e.IsCancelled && 
+                                e.Status == EventStatus.Approved);
+                            return events.Count();
+                        }
+                    }, 
+                    TimeSpan.FromMinutes(15));
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
+        }
+        
+        public async Task<int> GetUpcomingEventsCountAsync(Guid? tenantId)
+        {
+            try
+            {
+                string cacheKey = tenantId.HasValue 
+                    ? $"tenant:{tenantId}:events:count:upcoming" 
+                    : "events:count:upcoming";
+                
+                return await _cacheService.GetOrSetAsync(cacheKey, 
+                    async () => {
+                        if (tenantId.HasValue)
+                        {
+                            var events = await _unitOfWork.Events.FindAsync(e => 
+                                e.TenantId == tenantId.Value && 
+                                e.StartDate > DateTime.UtcNow && 
+                                !e.IsCancelled && 
+                                e.Status == EventStatus.Approved);
+                            return events.Count();
+                        }
+                        else
+                        {
+                            var events = await _unitOfWork.Events.FindAsync(e => 
+                                e.StartDate > DateTime.UtcNow && 
+                                !e.IsCancelled && 
+                                e.Status == EventStatus.Approved);
+                            return events.Count();
+                        }
+                    }, 
+                    TimeSpan.FromMinutes(15));
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
         }
         
         private EventDto MapToDto(Event @event)

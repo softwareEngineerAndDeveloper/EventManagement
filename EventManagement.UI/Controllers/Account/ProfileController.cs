@@ -29,7 +29,7 @@ namespace EventManagement.UI.Controllers.Account
             try
             {
                 // Kullanıcı bilgilerini API'den al
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.GetAsync<UserDto>("api/users/me", token);
 
                 if (!result.Success)
@@ -97,7 +97,7 @@ namespace EventManagement.UI.Controllers.Account
                     IsActive = model.IsActive
                 };
 
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.PutAsync<UserDto>("api/users/me", updateModel, token);
 
                 if (!result.Success)
@@ -146,7 +146,7 @@ namespace EventManagement.UI.Controllers.Account
                     ConfirmNewPassword = model.ConfirmNewPassword
                 };
 
-                var token = _authService.GetTokenAsync();
+                var token = await _authService.GetTokenAsync();
                 var result = await _apiService.PostAsync<bool>("api/auth/change-password", changePasswordDto, token);
 
                 if (!result.Success)

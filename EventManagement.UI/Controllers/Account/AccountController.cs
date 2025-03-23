@@ -54,12 +54,15 @@ namespace EventManagement.UI.Controllers.Account
                 {
                     _logger.LogInformation("Test hesabı için simüle edilmiş başarılı giriş: {Email}", model.Email);
                     
+                    // Test token oluştur
+                    var testToken = "test-token-for-admin-" + DateTime.Now.Ticks;
+                    
                     // Manuel kimlik oluştur
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", "test-token"),
+                        new Claim("Token", testToken),
                         new Claim("TenantId", Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Role, "Admin")
                     };
@@ -71,6 +74,11 @@ namespace EventManagement.UI.Controllers.Account
                         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
                     };
 
+                    // Token'ı önce HttpContext Session'a kaydet
+                    HttpContext.Session.SetString("Token", testToken);
+                    _logger.LogInformation("Admin için test token session'a kaydedildi: {TokenStart}...", 
+                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
+
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
                         new ClaimsPrincipal(claimsIdentity),
@@ -81,11 +89,14 @@ namespace EventManagement.UI.Controllers.Account
                 else if (model.Email == "manager@etkinlikyonetimi.com" && model.Password == "Manager123!")
                 {
                     // Manager hesabı için test giriş
+                    // Test token oluştur
+                    var testToken = "test-token-for-manager-" + DateTime.Now.Ticks;
+                    
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", "test-token"),
+                        new Claim("Token", testToken),
                         new Claim("TenantId", Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Role, "Manager")
                     };
@@ -96,6 +107,11 @@ namespace EventManagement.UI.Controllers.Account
                         IsPersistent = model.RememberMe,
                         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
                     };
+
+                    // Token'ı önce HttpContext Session'a kaydet
+                    HttpContext.Session.SetString("Token", testToken);
+                    _logger.LogInformation("Manager için test token session'a kaydedildi: {TokenStart}...", 
+                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
 
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
@@ -126,7 +142,7 @@ namespace EventManagement.UI.Controllers.Account
                     };
 
                     // Token'ı önce HttpContext Session'a kaydet
-                    HttpContext.Session.SetString("AuthToken", testToken);
+                    HttpContext.Session.SetString("Token", testToken);
                     _logger.LogInformation("EventManager için test token session'a kaydedildi: {TokenStart}...", 
                         testToken.Substring(0, Math.Min(testToken.Length, 20)));
 
@@ -141,11 +157,14 @@ namespace EventManagement.UI.Controllers.Account
                 else if (model.Email == "attendee@etkinlikyonetimi.com" && model.Password == "Attendee123!")
                 {
                     // Attendee hesabı için test giriş
+                    // Test token oluştur
+                    var testToken = "test-token-for-attendee-" + DateTime.Now.Ticks;
+                    
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", "test-token"),
+                        new Claim("Token", testToken),
                         new Claim("TenantId", Guid.NewGuid().ToString()),
                         new Claim(ClaimTypes.Role, "Attendee")
                     };
@@ -156,6 +175,11 @@ namespace EventManagement.UI.Controllers.Account
                         IsPersistent = model.RememberMe,
                         ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
                     };
+
+                    // Token'ı önce HttpContext Session'a kaydet
+                    HttpContext.Session.SetString("Token", testToken);
+                    _logger.LogInformation("Attendee için test token session'a kaydedildi: {TokenStart}...", 
+                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
 
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
@@ -185,7 +209,7 @@ namespace EventManagement.UI.Controllers.Account
                 }
                 
                 // Kullanıcının rolüne göre yönlendirme yap
-                var roles = _authService.GetUserRolesAsync();
+                var roles = await _authService.GetUserRolesAsync();
                 _logger.LogInformation("Kullanıcı rolleri: {Roles}", string.Join(", ", roles));
                 
                 // HTTP Bağlamını temizle
@@ -331,7 +355,7 @@ namespace EventManagement.UI.Controllers.Account
         
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult RolDurum()
+        public async Task<IActionResult> RolDurum()
         {
             var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
             var roles = User?.Claims
@@ -342,14 +366,17 @@ namespace EventManagement.UI.Controllers.Account
             var userId = User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var email = User?.FindFirstValue(ClaimTypes.Email);
             
+            var authServiceRoles = await _authService.GetUserRolesAsync();
+            var isInAdminRole = await _authService.IsInRoleAsync("Admin");
+            
             var viewModel = new 
             {
                 IsAuthenticated = isAuthenticated,
                 Roles = roles,
                 UserId = userId,
                 Email = email,
-                AuthServiceRoles = _authService.GetUserRolesAsync(),
-                IsInAdminRole = _authService.IsInRoleAsync("Admin")
+                AuthServiceRoles = authServiceRoles,
+                IsInAdminRole = isInAdminRole
             };
             
             return Json(viewModel);

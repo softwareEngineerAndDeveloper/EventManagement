@@ -34,7 +34,27 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<ResponseDto<EventDto>>> GetEventById(Guid id)
         {
             var tenantId = GetTenantId();
-            var result = await _eventService.GetEventByIdAsync(id, tenantId);
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            var result = await _eventService.GetEventByIdAsync(id, tenantId, isAdmin);
+            
+            if (!result.IsSuccess)
+            {
+                if (result.Message.Contains("bulunamadı"))
+                {
+                    return NotFound(result);
+                }
+                
+                if (result.Message.Contains("erişim izniniz yok"))
+                {
+                    return Forbid();
+                }
+                
+                return BadRequest(result);
+            }
+            
             return Ok(result);
         }
         
@@ -43,6 +63,27 @@ namespace EventManagement.API.Controllers
         public async Task<ActionResult<ResponseDto<EventStatisticsDto>>> GetEventStatistics(Guid id)
         {
             var tenantId = GetTenantId();
+            
+            // Admin rolü kontrolü
+            bool isAdmin = User.IsInRole("Admin");
+            
+            // Etkinliğin varlığını ve erişim izni olup olmadığını kontrol et
+            var eventCheck = await _eventService.GetEventByIdAsync(id, tenantId, isAdmin);
+            if (!eventCheck.IsSuccess)
+            {
+                if (eventCheck.Message.Contains("bulunamadı"))
+                {
+                    return NotFound(eventCheck);
+                }
+                
+                if (eventCheck.Message.Contains("erişim izniniz yok"))
+                {
+                    return Forbid();
+                }
+                
+                return BadRequest(eventCheck);
+            }
+            
             var result = await _eventService.GetEventStatisticsAsync(id, tenantId);
             return Ok(result);
         }

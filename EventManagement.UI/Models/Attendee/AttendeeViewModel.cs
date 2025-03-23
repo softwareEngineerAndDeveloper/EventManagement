@@ -6,6 +6,7 @@ namespace EventManagement.UI.Models.Attendee
     public enum AttendeeStatus
     {
         Pending = 0,
+        Registered = 0,
         Confirmed = 1,
         Cancelled = 2
     }
@@ -42,6 +43,9 @@ namespace EventManagement.UI.Models.Attendee
         [Display(Name = "Kayıt Tarihi")]
         public DateTime RegistrationDate { get; set; }
         
+        [JsonIgnore]
+        public DateTime CreatedAt => RegistrationDate;
+        
         [JsonPropertyName("notes")]
         [Display(Name = "Notlar")]
         public string? Notes { get; set; }
@@ -53,6 +57,9 @@ namespace EventManagement.UI.Models.Attendee
         [JsonPropertyName("sendEmailNotification")]
         [Display(Name = "E-posta Bildirimi")]
         public bool SendEmailNotification { get; set; } = true;
+        
+        [JsonIgnore]
+        public string EventName { get; set; } = string.Empty;
     }
     
     public class CreateAttendeeViewModel

@@ -213,6 +213,30 @@ namespace EventManagement.Application.Services
             return ResponseDto<bool>.Success(true);
         }
         
+        // Dashboard istatistikleri için eklenen metod
+        public async Task<int> GetTotalRegistrationsCountAsync(Guid? tenantId)
+        {
+            try
+            {
+                if (tenantId.HasValue)
+                {
+                    var registrations = await _unitOfWork.Registrations.FindAsync(r => 
+                        r.Event.TenantId == tenantId.Value && 
+                        !r.IsCancelled);
+                    return registrations.Count();
+                }
+                else
+                {
+                    var registrations = await _unitOfWork.Registrations.FindAsync(r => !r.IsCancelled);
+                    return registrations.Count();
+                }
+            }
+            catch (Exception)
+            {
+                return 0; // Hata durumunda 0 döndür
+            }
+        }
+        
         private RegistrationDto MapToDto(Registration registration)
         {
             return new RegistrationDto

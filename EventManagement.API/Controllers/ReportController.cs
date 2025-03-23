@@ -57,12 +57,7 @@ namespace EventManagement.API.Controllers
                 TotalUsers = totalUsers
             };
             
-            return Ok(new ResponseDto<DashboardStatsDto>
-            {
-                Success = true,
-                Message = "Dashboard istatistikleri başarıyla alındı.",
-                Data = dashboardStats
-            });
+            return Ok(ResponseDto<DashboardStatsDto>.Success(dashboardStats, "Dashboard istatistikleri başarıyla alındı."));
         }
     }
 } 

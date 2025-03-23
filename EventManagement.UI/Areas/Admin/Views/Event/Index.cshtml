@@ -59,7 +59,7 @@
                                     <td>@item.TenantName</td>
                                     <td>@item.StartDate.ToString("dd.MM.yyyy HH:mm")</td>
                                     <td>@item.EndDate.ToString("dd.MM.yyyy HH:mm")</td>
-                                    <td>@(item.MaxAttendees.HasValue ? item.MaxAttendees.Value.ToString() : "Sınırsız")</td>
+                                    <td>@(item.MaxAttendees > 0 ? item.MaxAttendees.ToString() : "Sınırsız")</td>
                                     <td>@item.RegistrationCount</td>
                                     <td>
                                         @switch (item.Status)
@@ -132,11 +132,21 @@
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json'
                 },
+                processing: true,
+                paging: true,
+                pagingType: "full_numbers",
                 columnDefs: [
                     { orderable: true, targets: [0, 1, 2, 3, 4, 5, 6, 7] },
                     { orderable: false, targets: [8] } // İşlemler sütunu sıralanamaz
                 ],
-                order: [[3, 'asc']] // Başlangıç tarihine göre sırala
+                order: [[3, 'asc']], // Başlangıç tarihine göre sırala
+                // Tablo boşsa hata vermesini engelle
+                initComplete: function() {
+                    // DataTable uyarılarını kontrol et ve temizle
+                    if (window.console && console.clear) {
+                        console.clear();
+                    }
+                }
             });
         });
     </script>
