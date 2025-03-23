@@ -49,147 +49,6 @@ namespace EventManagement.UI.Controllers.Account
             {
                 _logger.LogInformation("Oturum açma isteği: {Email}", model.Email);
                 
-                // Test amaçlı: API çalışmadığında mock veri ile kimlik doğrulama
-                if (model.Email == "admin@etkinlikyonetimi.com" && model.Password == "Admin123!")
-                {
-                    _logger.LogInformation("Test hesabı için simüle edilmiş başarılı giriş: {Email}", model.Email);
-                    
-                    // Test token oluştur
-                    var testToken = "test-token-for-admin-" + DateTime.Now.Ticks;
-                    
-                    // Manuel kimlik oluştur
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", testToken),
-                        new Claim("TenantId", Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Role, "Admin")
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                    };
-
-                    // Token'ı önce HttpContext Session'a kaydet
-                    HttpContext.Session.SetString("Token", testToken);
-                    _logger.LogInformation("Admin için test token session'a kaydedildi: {TokenStart}...", 
-                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-                    
-                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-                }
-                else if (model.Email == "manager@etkinlikyonetimi.com" && model.Password == "Manager123!")
-                {
-                    // Manager hesabı için test giriş
-                    // Test token oluştur
-                    var testToken = "test-token-for-manager-" + DateTime.Now.Ticks;
-                    
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", testToken),
-                        new Claim("TenantId", Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Role, "Manager")
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                    };
-
-                    // Token'ı önce HttpContext Session'a kaydet
-                    HttpContext.Session.SetString("Token", testToken);
-                    _logger.LogInformation("Manager için test token session'a kaydedildi: {TokenStart}...", 
-                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-                    
-                    return RedirectToAction("Index", "Dashboard", new { area = "Manager" });
-                }
-                else if (model.Email == "eventmanager@etkinlikyonetimi.com" && model.Password == "EventManager123!")
-                {
-                    // EventManager hesabı için test giriş
-                    var testToken = "test-token-for-eventmanager-" + DateTime.Now.Ticks;
-                    
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", testToken),
-                        new Claim("TenantId", Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Role, "EventManager")
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                    };
-
-                    // Token'ı önce HttpContext Session'a kaydet
-                    HttpContext.Session.SetString("Token", testToken);
-                    _logger.LogInformation("EventManager için test token session'a kaydedildi: {TokenStart}...", 
-                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-                    
-                    _logger.LogInformation("EventManager kullanıcısı başarıyla giriş yaptı ve EventManager alanına yönlendiriliyor");
-                    return RedirectToAction("Index", "Home", new { area = "EventManager" });
-                }
-                else if (model.Email == "attendee@etkinlikyonetimi.com" && model.Password == "Attendee123!")
-                {
-                    // Attendee hesabı için test giriş
-                    // Test token oluştur
-                    var testToken = "test-token-for-attendee-" + DateTime.Now.Ticks;
-                    
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Email, model.Email),
-                        new Claim("Token", testToken),
-                        new Claim("TenantId", Guid.NewGuid().ToString()),
-                        new Claim(ClaimTypes.Role, "Attendee")
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                    };
-
-                    // Token'ı önce HttpContext Session'a kaydet
-                    HttpContext.Session.SetString("Token", testToken);
-                    _logger.LogInformation("Attendee için test token session'a kaydedildi: {TokenStart}...", 
-                        testToken.Substring(0, Math.Min(testToken.Length, 20)));
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-                    
-                    return RedirectToAction("Index", "Dashboard", new { area = "Attendee" });
-                }
-                
-                // Normal durumda API'yi çağır
                 var response = await _authService.LoginAsync(model);
                 
                 if (!response.Success)
@@ -207,10 +66,10 @@ namespace EventManagement.UI.Controllers.Account
                 {
                     return Redirect(returnUrl);
                 }
-                
+
                 // Kullanıcının rolüne göre yönlendirme yap
                 var roles = await _authService.GetUserRolesAsync();
-                _logger.LogInformation("Kullanıcı rolleri: {Roles}", string.Join(", ", roles));
+              
                 
                 // HTTP Bağlamını temizle
                 if (!Response.Headers.ContainsKey("Cache-Control"))
@@ -234,17 +93,11 @@ namespace EventManagement.UI.Controllers.Account
                     _logger.LogInformation("EventManager rolü tespit edildi. EventManager Dashboard'a yönlendiriliyor.");
                     return RedirectToAction("Index", "Home", new { area = "EventManager" });
                 }
-                // Manager rolü varsa, manager dashboard'una yönlendir
-                else if (roles.Contains("Manager"))
-                {
-                    _logger.LogInformation("Manager rolü tespit edildi. Manager Dashboard'a yönlendiriliyor.");
-                    return RedirectToAction("Index", "Dashboard", new { area = "Manager" });
-                }
-                // Attendee rolü veya diğer roller için, attendee dashboard'una yönlendir
+                // Attendee rolü veya diğer roller için, ana sayfaya yönlendir
                 else
                 {
-                    _logger.LogInformation("Attendee rolü tespit edildi. Attendee Dashboard'a yönlendiriliyor.");
-                    return RedirectToAction("Index", "Dashboard", new { area = "Attendee" });
+                    _logger.LogInformation("Attendee rolü tespit edildi. Ana sayfaya yönlendiriliyor.");
+                    return RedirectToAction("Index", "Home");
                 }
             }
             catch (Exception ex)
@@ -325,6 +178,31 @@ namespace EventManagement.UI.Controllers.Account
                 {
                     Response.Cookies.Delete(cookie);
                 }
+
+                // JWT token çerezini özel olarak sil (isim konfigürasyondan alınabilir)
+                string jwtCookieName = _configuration["Authentication:JwtCookieName"] ?? ".AspNetCore.JWT";
+                Response.Cookies.Delete(jwtCookieName, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Path = "/"
+                });
+
+                // Alternatif domain path'ler için de token temizliği
+                Response.Cookies.Delete(jwtCookieName, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Path = "/api"
+                });
+                
+                // Authentication header'ını temizle
+                if (Response.Headers.ContainsKey("Authorization"))
+                {
+                    Response.Headers.Remove("Authorization");
+                }
                 
                 _logger.LogInformation("Kullanıcı çıkış yaptı");
             }
@@ -342,6 +220,9 @@ namespace EventManagement.UI.Controllers.Account
             
             if (!Response.Headers.ContainsKey("Expires"))
                 Response.Headers.Append("Expires", "0");
+
+            // TempData ile client-side storage temizliği için flag gönder
+            TempData["ClearClientStorage"] = true;
             
             return RedirectToAction(nameof(Login));
         }

@@ -136,9 +136,22 @@
                                         <td>
                                             @{
                                                 var capacityPercentage = 0;
-                                                if (item.MaxAttendees.HasValue && item.MaxAttendees.Value > 0)
+                                                
+                                                // item.MaxAttendees bir int olabilir, nullable int kontrolü yapalım
+                                                int? maxAttendeesNullable = null;
+                                                
+                                                try 
                                                 {
-                                                    capacityPercentage = (int)(((double)item.RegistrationCount / item.MaxAttendees.Value) * 100);
+                                                    maxAttendeesNullable = Convert.ToInt32(item.MaxAttendees);
+                                                }
+                                                catch
+                                                {
+                                                    // Dönüşüm başarısız olursa null bırak
+                                                }
+                                                
+                                                if (maxAttendeesNullable.HasValue && maxAttendeesNullable.Value > 0)
+                                                {
+                                                    capacityPercentage = (int)(((double)item.RegistrationCount / maxAttendeesNullable.Value) * 100);
                                                 }
                                                 
                                                 string progressColorClass = "bg-success";
@@ -161,7 +174,7 @@
                                                 </div>
                                                 <span class="small ml-2">@Math.Round((double)capacityPercentage)%</span>
                                             </div>
-                                            <small class="text-muted">@item.RegistrationCount / @(item.MaxAttendees?.ToString() ?? "∞")</small>
+                                            <small class="text-muted">@item.RegistrationCount / @(maxAttendeesNullable?.ToString() ?? "∞")</small>
                                         </td>
                                     </tr>
                                 }

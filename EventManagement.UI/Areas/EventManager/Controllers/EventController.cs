@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using EventManagement.UI.Models.Event;
 using System.Security.Claims;
 using System.Diagnostics;
+using System.Text.Json;
+using EventManagement.UI.Models.Attendee;
 
 namespace EventManagement.UI.Areas.EventManager.Controllers
 {
@@ -99,7 +101,29 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
                     return RedirectToAction("Login", "Account", new { area = "" });
                 }
                 
-                var response = await _apiService.PostAsync<EventViewModel>("api/events", model, token);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Kullanıcı kimliği alınamadı!");
+                    TempData["ErrorMessage"] = "Kullanıcı kimliği alınamadı. Lütfen tekrar giriş yapın.";
+                    return RedirectToAction("Login", "Account", new { area = "" });
+                }
+                
+                var apiModel = new Dictionary<string, object>
+                {
+                    { "title", model.Title },
+                    { "description", model.Description },
+                    { "startDate", model.StartDate },
+                    { "endDate", model.EndDate },
+                    { "location", model.Location },
+                    { "maxAttendees", model.MaxAttendees ?? 0 },
+                    { "isPublic", model.IsPublic },
+                    { "creatorId", Guid.Parse(userId) }
+                };
+                
+                _logger.LogInformation("Etkinlik oluşturuluyor, CreatorId: {0}", userId);
+                
+                var response = await _apiService.PostAsync<EventViewModel>("api/events", apiModel, token);
 
                 if (response.Success)
                 {
@@ -244,6 +268,77 @@ namespace EventManagement.UI.Areas.EventManager.Controllers
                 _logger.LogError(ex, "Etkinlik silinirken hata oluştu, ID: {Id}", id);
                 TempData["ErrorMessage"] = "Etkinlik silinirken beklenmeyen bir hata oluştu.";
                 return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAttendees(Guid id)
+        {
+            try
+            {
+                var token = await _authService.GetTokenAsync();
+                
+                var response = await _apiService.GetAsync<List<AttendeeViewModel>>($"api/events/{id}/attendees", token);
+                
+                if (response.Success)
+                {
+                    return Json(new { success = true, data = response.Data });
+                }
+                
+                return Json(new { success = false, message = response.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Etkinlik katılımcıları getirilirken hata oluştu, ID: {Id}", id);
+                return Json(new { success = false, message = "Katılımcılar yüklenirken beklenmeyen bir hata oluştu." });
+            }
+        }
+        
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAttendee(Guid eventId, AddAttendeeViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new 
+                { 
+                    success = false, 
+                    message = "Geçersiz form verileri.", 
+                    errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList() 
+                });
+            }
+            
+            try
+            {
+                var token = await _authService.GetTokenAsync();
+                
+                // API'ye gönderilecek modeli oluştur - CreateAttendeeDto yapısına uygun olarak
+                var apiModel = new
+                {
+                    eventId = eventId,
+                    name = model.FullName, // fullName yerine name kullan
+                    email = model.Email,
+                    phone = model.Phone
+                };
+                
+                _logger.LogInformation("Katılımcı eklenirken API'ye gönderilen model: {@ApiModel}", apiModel);
+                
+                var response = await _apiService.PostAsync<AttendeeViewModel>($"api/events/{eventId}/attendees", apiModel, token);
+                
+                if (response.Success)
+                {
+                    return Json(new { success = true, data = response.Data, message = "Katılımcı başarıyla eklendi." });
+                }
+                
+                return Json(new { success = false, message = response.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Etkinliğe katılımcı eklenirken hata oluştu, ID: {EventId}", eventId);
+                return Json(new { success = false, message = "Katılımcı eklenirken beklenmeyen bir hata oluştu." });
             }
         }
 

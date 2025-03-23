@@ -274,59 +274,52 @@ namespace EventManagement.UI.Services
 
         private async Task<ApiResponse<T>> ProcessResponseAsync<T>(HttpResponseMessage response)
         {
-            var content = await response.Content.ReadAsStringAsync();
             var statusCode = (int)response.StatusCode;
-            _logger.LogInformation("API Yanıt İçeriği: {Content}", content);
-            _logger.LogInformation("API Yanıt Durum Kodu: {StatusCode}", statusCode);
-            _logger.LogInformation("API Yanıt Hedef Tip: {Type}", typeof(T).FullName);
-
+            var content = await response.Content.ReadAsStringAsync();
+                
+            _logger.LogInformation("API yanıtı alındı: StatusCode={StatusCode}, ContentLength={ContentLength}", 
+                statusCode, content?.Length ?? 0);
+            
+            if (string.IsNullOrEmpty(content))
+            {
+                _logger.LogWarning("API yanıtı boş veya null!");
+                return new ApiResponse<T>
+                {
+                    Success = false,
+                    Message = "API yanıtı boş veya null!",
+                    StatusCode = statusCode
+                };
+            }
+            
             if (response.IsSuccessStatusCode)
             {
                 try
                 {
-                    // İçerik boş kontrolü
-                    if (string.IsNullOrWhiteSpace(content))
-                    {
-                        _logger.LogWarning("API yanıtı boş içerik döndürdü!");
-                        return new ApiResponse<T>
-                        {
-                            Success = false,
-                            Message = "API yanıtı boş içerik döndürdü",
-                            StatusCode = statusCode
-                        };
-                    }
-
-                    // JSON formatını doğrula
-                    try
-                    {
-                        var testParse = JsonConvert.DeserializeObject(content);
-                        _logger.LogInformation("JSON formatı geçerli: {IsValid}", testParse != null);
-                    }
-                    catch (Exception jsonEx)
-                    {
-                        _logger.LogError(jsonEx, "JSON formatı geçersiz: {Message}", jsonEx.Message);
-                    }
-
-                    // API yanıtı wrapper içinde geliyor, önce wrapper'ı deserialize ediyoruz
-                    _logger.LogInformation("API wrapper deserialize deneniyor...");
-                    var apiWrapper = JsonConvert.DeserializeObject<ApiWrapper<T>>(content);
+                    _logger.LogInformation("Başarılı yanıt deserialize ediliyor...");
                     
-                    if (apiWrapper != null)
+                    // Önce içeriği logla
+                    _logger.LogDebug("API Yanıt İçeriği: {Content}", content);
+                    
+                    // Yanıt wrapper içinde mi kontrol et
+                    if (content.Contains("\"isSuccess\":") || content.Contains("\"data\":"))
                     {
-                        _logger.LogInformation("API wrapper deserialize başarılı. IsSuccess: {IsSuccess}", apiWrapper.IsSuccess);
-                        return new ApiResponse<T>
+                        var wrapper = JsonConvert.DeserializeObject<ApiWrapper<T>>(content);
+                        
+                        if (wrapper != null)
                         {
-                            Success = apiWrapper.IsSuccess,
-                            Message = apiWrapper.Message ?? "İşlem başarılı",
-                            Data = apiWrapper.Data,
-                            StatusCode = statusCode
-                        };
+                            return new ApiResponse<T>
+                            {
+                                Success = wrapper.IsSuccess,
+                                Message = wrapper.Message ?? "İşlem başarılı",
+                                Data = wrapper.Data,
+                                Errors = wrapper.Errors,
+                                StatusCode = statusCode
+                            };
+                        }
                     }
                     
-                    // Eğer wrapper yoksa, doğrudan içeriği deserialize et
-                    _logger.LogInformation("Doğrudan tip deserialize deneniyor...");
+                    // Wrapper olmadan doğrudan veri içeriyor olabilir
                     var data = JsonConvert.DeserializeObject<T>(content);
-                    _logger.LogInformation("Doğrudan deserialize sonucu: {IsSuccess}", data != null);
                     
                     return new ApiResponse<T>
                     {
@@ -338,8 +331,8 @@ namespace EventManagement.UI.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "JSON Dönüştürme Hatası: {ExceptionType}: {Message}", ex.GetType().Name, ex.Message);
-                    _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
+                    _logger.LogError(ex, "Yanıt deserialize edilirken hata oluştu: {Message}, İçerik: {Content}", 
+                        ex.Message, content);
                     
                     return new ApiResponse<T>
                     {
@@ -355,39 +348,67 @@ namespace EventManagement.UI.Services
                 
                 try
                 {
-                    _logger.LogWarning("Hata yanıtı deserialize ediliyor...");
-                    var errorResponse = JsonConvert.DeserializeObject<object>(content);
-                    var errorResponseStr = JsonConvert.SerializeObject(errorResponse);
-                    _logger.LogWarning("Hata yanıtı: {ErrorResponse}", errorResponseStr);
+                    _logger.LogWarning("Hata yanıtı deserialize edilmeye çalışılıyor... İçerik: {Content}", content);
                     
-                    // Dinamik tiplerle çalışırken LogWarning sorununu gidermek için
-                    // object'e parse edip, gerekli özellikleri kontrol ediyoruz
-                    var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(content);
-                    
-                    if (json != null)
+                    // İçerik JSON mu kontrol et
+                    if (content.StartsWith("{") && content.EndsWith("}"))
                     {
-                        if (json.TryGetValue("message", out var message) && message != null)
+                        try
                         {
-                            errorMessage = message.ToString();
-                            _logger.LogWarning("Çıkarılan hata mesajı (message): {ErrorMessage}", errorMessage);
+                            // Wrapper formatındaysa
+                            var wrapper = JsonConvert.DeserializeObject<ApiWrapper<T>>(content);
+                            if (wrapper != null && !string.IsNullOrEmpty(wrapper.Message))
+                            {
+                                return new ApiResponse<T>
+                                {
+                                    Success = false,
+                                    Message = wrapper.Message,
+                                    Errors = wrapper.Errors,
+                                    StatusCode = statusCode
+                                };
+                            }
                         }
-                        else if (json.TryGetValue("Message", out var messageCapital) && messageCapital != null)
+                        catch
                         {
-                            errorMessage = messageCapital.ToString();
-                            _logger.LogWarning("Çıkarılan hata mesajı (Message): {ErrorMessage}", errorMessage);
+                            // Wrapper formatında değilse, generic dictionary olarak parse et
+                            var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(content);
+                            
+                            if (json != null)
+                            {
+                                if (json.TryGetValue("message", out var message) && message != null)
+                                {
+                                    errorMessage = message.ToString();
+                                }
+                                else if (json.TryGetValue("Message", out var messageCapital) && messageCapital != null)
+                                {
+                                    errorMessage = messageCapital.ToString();
+                                }
+                                else if (json.TryGetValue("error", out var error) && error != null)
+                                {
+                                    errorMessage = error.ToString();
+                                }
+                                else if (json.TryGetValue("Error", out var errorCapital) && errorCapital != null)
+                                {
+                                    errorMessage = errorCapital.ToString();
+                                }
+                                
+                                _logger.LogWarning("Çıkarılan hata mesajı: {ErrorMessage}", errorMessage);
+                            }
                         }
-                        else if (json.TryGetValue("error", out var error) && error != null)
-                        {
-                            errorMessage = error.ToString();
-                            _logger.LogWarning("Çıkarılan hata mesajı (error): {ErrorMessage}", errorMessage);
-                        }
+                    }
+                    else
+                    {
+                        // JSON değilse, muhtemelen HTML veya başka bir format
+                        errorMessage = $"API hata döndürdü (HTTP {statusCode}): {(content.Length > 100 ? content.Substring(0, 100) + "..." : content)}";
+                        _logger.LogWarning("API JSON olmayan bir yanıt döndürdü: {ErrorMessage}", errorMessage);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Hata Yanıtı İşleme Hatası: {Message}", ex.Message);
+                    errorMessage = $"API hatası (HTTP {statusCode}): {ex.Message}";
                 }
-                
+
                 return new ApiResponse<T>
                 {
                     Success = false,

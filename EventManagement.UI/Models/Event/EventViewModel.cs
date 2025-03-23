@@ -54,7 +54,7 @@ namespace EventManagement.UI.Models.Event
         
         [Display(Name = "Maksimum Katılımcı Sayısı")]
         [JsonPropertyName("maxAttendees")]
-        public int MaxAttendees { get; set; }
+        public int? MaxAttendees { get; set; }
         
         [Display(Name = "Katılımcı Sayısı")]
         [JsonPropertyName("attendeeCount")]

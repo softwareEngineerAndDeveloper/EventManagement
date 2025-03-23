@@ -40,7 +40,7 @@ namespace EventManagement.UI.Models.Event
         [Display(Name = "Maksimum Katılımcı Sayısı")]
         [Range(1, int.MaxValue, ErrorMessage = "Maksimum katılımcı sayısı en az 1 olmalıdır.")]
         [JsonPropertyName("maxAttendees")]
-        public int MaxAttendees { get; set; }
+        public int? MaxAttendees { get; set; }
         
         [Display(Name = "Herkese Açık")]
         [JsonPropertyName("isPublic")]

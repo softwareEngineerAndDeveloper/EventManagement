@@ -101,4 +101,24 @@ namespace EventManagement.UI.Models.Attendee
         [JsonPropertyName("sendEmailNotification")]
         public bool SendEmailNotification { get; set; } = true;
     }
+
+    public class AddAttendeeViewModel
+    {
+        [Required(ErrorMessage = "Ad soyad alanı zorunludur")]
+        [StringLength(100, ErrorMessage = "Ad soyad en fazla 100 karakter olabilir")]
+        [Display(Name = "Ad Soyad")]
+        public string FullName { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "E-posta alanı zorunludur")]
+        [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz")]
+        [StringLength(100, ErrorMessage = "E-posta en fazla 100 karakter olabilir")]
+        [Display(Name = "E-posta")]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Telefon alanı zorunludur")]
+        [Phone(ErrorMessage = "Geçerli bir telefon numarası giriniz")]
+        [StringLength(20, ErrorMessage = "Telefon numarası en fazla 20 karakter olabilir")]
+        [Display(Name = "Telefon")]
+        public string Phone { get; set; } = string.Empty;
+    }
 } 

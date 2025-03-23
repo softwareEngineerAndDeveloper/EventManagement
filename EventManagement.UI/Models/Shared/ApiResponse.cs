@@ -6,6 +6,7 @@ namespace EventManagement.UI.Models.Shared
         public string Message { get; set; } = string.Empty;
         public T? Data { get; set; }
         public int StatusCode { get; set; }
+        public object? Errors { get; set; }
         
         // Uyumluluk için IsSuccess property'si ekleyelim
         public bool IsSuccess 

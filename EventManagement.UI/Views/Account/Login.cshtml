@@ -69,4 +69,34 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    
+    @if (TempData["ClearClientStorage"] != null && (bool)TempData["ClearClientStorage"])
+    {
+        <script>
+            (function() {
+                // LocalStorage temizle
+                localStorage.clear();
+                
+                // SessionStorage temizle
+                sessionStorage.clear();
+                
+                // Authentication header cookie'leri temizle
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, "")
+                        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                
+                // Ek güvenlik - özellikle JWT token için
+                document.cookie = ".AspNetCore.JWT=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
+                
+                console.log("Tüm tarayıcı depolama alanları temizlendi");
+                
+                // Kesin bir temizlik için hard reload teşvik et
+                if (window.performance && performance.navigation.type !== 1) {
+                    console.log("Sayfa yenilemesi için zorlanıyor");
+                    window.location.reload(true);
+                }
+            })();
+        </script>
+    }
 } 

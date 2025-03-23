@@ -46,6 +46,34 @@
                         <i class="fas fa-tachometer-alt me-1"></i> Admin Paneli
                     </a>
                 </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                        <i class="fas fa-user me-1"></i> Profilim
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="ChangePassword">
+                        <i class="fas fa-key me-1"></i> Şifre Değiştir
+                    </a>
+                </li>
+            }
+            else if (roles.Contains("EventManager"))
+            {
+                <li>
+                    <a class="dropdown-item" asp-area="EventManager" asp-controller="Home" asp-action="Index">
+                        <i class="fas fa-tachometer-alt me-1"></i> Etkinlik Yöneticisi Paneli
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                        <i class="fas fa-user me-1"></i> Profilim
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="ChangePassword">
+                        <i class="fas fa-key me-1"></i> Şifre Değiştir
+                    </a>
+                </li>
             }
             else if (roles.Contains("Manager"))
             {
@@ -54,12 +82,32 @@
                         <i class="fas fa-tachometer-alt me-1"></i> Yönetici Paneli
                     </a>
                 </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                        <i class="fas fa-user me-1"></i> Profilim
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="ChangePassword">
+                        <i class="fas fa-key me-1"></i> Şifre Değiştir
+                    </a>
+                </li>
             }
             else
             {
                 <li>
                     <a class="dropdown-item" asp-area="Attendee" asp-controller="Dashboard" asp-action="Index">
                         <i class="fas fa-tachometer-alt me-1"></i> Katılımcı Paneli
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                        <i class="fas fa-user me-1"></i> Profilim
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="ChangePassword">
+                        <i class="fas fa-key me-1"></i> Şifre Değiştir
                     </a>
                 </li>
             }
